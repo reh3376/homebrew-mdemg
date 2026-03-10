@@ -8,36 +8,24 @@ class Mdemg < Formula
   version "0.2.2"
 
   depends_on "docker" => :optional
+  depends_on :macos
 
-  on_macos do
-    if Hardware::CPU.intel?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.2.2/mdemg_0.2.2_darwin_amd64.tar.gz"
-      sha256 "74894ecea88d806c0b647f6641308fd65d41b57b56b8b8e51d77d0c4fafb3b96"
+  if Hardware::CPU.intel?
+    url "https://github.com/reh3376/mdemg/releases/download/v0.2.2/mdemg_0.2.2_darwin_amd64.tar.gz"
+    sha256 "285b3e3d41c9e8ac09c3233a5a8cc6518dfeba68159ac59db71f0b26764705e1"
 
-      define_method(:install) do
-        bin.install "mdemg"
-        man1.install Dir["man/man1/*.1"]
-      end
-    end
-    if Hardware::CPU.arm?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.2.2/mdemg_0.2.2_darwin_arm64.tar.gz"
-      sha256 "0f68705ee540690ecbefa5b93f9eb2ec5199c9a920c0de2093fa0ed4127aa5aa"
-
-      define_method(:install) do
-        bin.install "mdemg"
-        man1.install Dir["man/man1/*.1"]
-      end
+    define_method(:install) do
+      bin.install "mdemg"
+      man1.install Dir["man/man1/*.1"]
     end
   end
+  if Hardware::CPU.arm?
+    url "https://github.com/reh3376/mdemg/releases/download/v0.2.2/mdemg_0.2.2_darwin_arm64.tar.gz"
+    sha256 "89148a238f3a9377b697b7f6c9b99358377bc29acedc5d427f23851ad2cebbf7"
 
-  on_linux do
-    if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.2.2/mdemg_0.2.2_linux_amd64.tar.gz"
-      sha256 "301de8d511f35893baffd826a90aef650faacbfe9cfa76ead754eb0edf03daec"
-      define_method(:install) do
-        bin.install "mdemg"
-        man1.install Dir["man/man1/*.1"]
-      end
+    define_method(:install) do
+      bin.install "mdemg"
+      man1.install Dir["man/man1/*.1"]
     end
   end
 
