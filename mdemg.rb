@@ -12,7 +12,7 @@ class Mdemg < Formula
 
   if Hardware::CPU.intel?
     url "https://github.com/reh3376/mdemg/releases/download/v0.2.4/mdemg_0.2.4_darwin_amd64.tar.gz"
-    sha256 "e306f7f31782a0c4895afc8ad92e5b7430c04b493ad87353f4c7a93a5cd3e259"
+    sha256 "9b766b6f14bd56ed35517bcc5e7cad86ae989d9e40b02b35e6441c26c8045338"
 
     define_method(:install) do
       bin.install "mdemg"
@@ -21,7 +21,7 @@ class Mdemg < Formula
   end
   if Hardware::CPU.arm?
     url "https://github.com/reh3376/mdemg/releases/download/v0.2.4/mdemg_0.2.4_darwin_arm64.tar.gz"
-    sha256 "906a07993ecb089718e1300db76a4bec4f67c23f4cd72dd77c90ccc12e7b8832"
+    sha256 "87fcabbb15358d9878d7520d68a1c4407aff1dbb262a900a05edccd0f6393e7f"
 
     define_method(:install) do
       bin.install "mdemg"
