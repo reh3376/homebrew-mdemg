@@ -3,7 +3,7 @@ cask "mdemg" do
   name "mdemg"
   desc "Multi-Dimensional Emergent Memory Graph — cognitive substrate for AI agents"
   homepage "https://github.com/reh3376/mdemg"
-  version "0.2.0"
+  version "0.2.1"
 
   livecheck do
     skip "Auto-generated on release."
@@ -17,18 +17,18 @@ cask "mdemg" do
   on_macos do
     on_intel do
       url "https://github.com/reh3376/mdemg/releases/download/v#{version}/mdemg_#{version}_darwin_amd64.tar.gz"
-      sha256 "8067cfcc6760da132caddf86cd27012bb0b2ae1c3944f1e0a0e14606133e9aee"
+      sha256 "4ea4817c370300969d4bb0ccd07c0ee2128a3f4628d40f4cddd59aa709d98387"
     end
     on_arm do
       url "https://github.com/reh3376/mdemg/releases/download/v#{version}/mdemg_#{version}_darwin_arm64.tar.gz"
-      sha256 "2f5c4640715b077962a62c43875437132cbe6f0143ac380b9cf2f7cd6d5a39dd"
+      sha256 "c45d3ca1c837f299b862a39710ef9acb0d5ca4b15afe4c587bddc5cec61361dd"
     end
   end
 
   on_linux do
     on_intel do
       url "https://github.com/reh3376/mdemg/releases/download/v#{version}/mdemg_#{version}_linux_amd64.tar.gz"
-      sha256 "d95193752f2b69318979195ddb7d3c27269d4286851724583acba83e3c63ad79"
+      sha256 "825b8017bccde6423108e08df6f9184f2b43a6c6259b1f561a60c4f72720d557"
     end
   end
 
