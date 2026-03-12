@@ -5,27 +5,35 @@
 class Mdemg < Formula
   desc "Multi-Dimensional Emergent Memory Graph — cognitive substrate for AI agents"
   homepage "https://github.com/reh3376/mdemg"
-  version "0.2.10"
+  version "0.2.11"
 
   depends_on "docker" => :optional
   depends_on :macos
 
   if Hardware::CPU.intel?
-    url "https://github.com/reh3376/mdemg/releases/download/v0.2.10/mdemg_0.2.10_darwin_amd64.tar.gz"
-    sha256 "579a533823c654e5545fbbb2f4c59750fe143403c1328101d7adcc4379cba3e2"
+    url "https://github.com/reh3376/mdemg/releases/download/v0.2.11/mdemg_0.2.11_darwin_amd64.tar.gz"
+    sha256 "3b5914178ea5eedc4c4e362e62773523338d5b4559e39bb623198b531675d625"
 
     define_method(:install) do
       bin.install "mdemg"
       man1.install Dir["man/man1/*.1"]
+      # UxTS plugin (default-enabled REASONING module)
+      plugdir = share/"mdemg/plugins/uxts-module"
+      plugdir.install "uxts-module"
+      plugdir.install "plugins/uxts-module/manifest.json"
     end
   end
   if Hardware::CPU.arm?
-    url "https://github.com/reh3376/mdemg/releases/download/v0.2.10/mdemg_0.2.10_darwin_arm64.tar.gz"
-    sha256 "2e3c11867e92d350accde7b51900f0cbf2bb16ed2959b4d70727f6d6ab6eec20"
+    url "https://github.com/reh3376/mdemg/releases/download/v0.2.11/mdemg_0.2.11_darwin_arm64.tar.gz"
+    sha256 "cc5eeaa199f1b610097a0e73ee911118b7eb9c5e7c61be7a93d2979894911aed"
 
     define_method(:install) do
       bin.install "mdemg"
       man1.install Dir["man/man1/*.1"]
+      # UxTS plugin (default-enabled REASONING module)
+      plugdir = share/"mdemg/plugins/uxts-module"
+      plugdir.install "uxts-module"
+      plugdir.install "plugins/uxts-module/manifest.json"
     end
   end
 
