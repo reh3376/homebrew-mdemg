@@ -152,36 +152,9 @@ source ~/.zprofile
 
 ## Quick Start
 
-### Option A: One command
+### Option A: Step by step (recommended for beta testing)
 
-```bash
-export OPENAI_API_KEY=sk-...    # skip if using Ollama or no embedding provider
-mdemg init --quick
-```
-
-This runs the full setup sequence: creates config, starts Neo4j, starts the server, applies migrations, and confirms readiness.
-
-**Expected output (success):**
-
-```
-✓ Config created: .mdemg/config.yaml
-✓ Neo4j container started
-✓ Migrations applied (v18)
-✓ Server started on :9999
-✓ Health check passed
-```
-
-**Verify everything is running:**
-
-```bash
-mdemg status
-```
-
-Skip to [Set Up a Test Project](#set-up-a-test-project) below.
-
-### Option B: Step by step
-
-Use this if Option A fails, or if you want to understand each step.
+Use this option for beta testing — it lets you verify each step individually and catch issues early.
 
 **Step 1 — Initialize configuration:**
 
@@ -253,6 +226,23 @@ mdemg ingest --path .
 ```
 
 Expected: scans the directory, extracts code symbols and content, and stores them as observations in the knowledge graph. Output shows files processed and observations created.
+
+### Option B: One command
+
+If you've already completed a beta test and are familiar with the setup, you can use the quick start instead:
+
+```bash
+export OPENAI_API_KEY=sk-...    # skip if using Ollama or no embedding provider
+mdemg init --quick
+```
+
+This runs the full setup sequence: creates config, starts Neo4j, starts the server, applies migrations, and confirms readiness.
+
+**Verify everything is running:**
+
+```bash
+mdemg status
+```
 
 ---
 
