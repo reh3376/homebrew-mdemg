@@ -59,6 +59,8 @@ docker run --rm hello-world
 # Should print "Hello from Docker!"
 ```
 
+> MDEMG requires **Neo4j 5.11+** for vector index support. The `mdemg db start` command pulls Neo4j 5.x automatically.
+
 > **Note:** Docker Desktop must be running whenever you use MDEMG. It does not auto-start by default. To enable auto-start: Docker Desktop menu bar icon → Settings → General → "Start Docker Desktop when you sign in to your computer."
 
 ### 4. OpenAI API Key (recommended) or Ollama
@@ -87,6 +89,8 @@ An embedding provider powers semantic search, recall, consolidation naming, and 
    ollama list
    # Should show nomic-embed-text in the list
    ```
+
+> **Dimension warning:** OpenAI `text-embedding-3-large` produces 3072-dimension embeddings. Many Ollama models produce fewer dimensions. Run `mdemg embeddings check` after setup to verify. If dimensions don't match the existing vector index, you may need to recreate it.
 
 **Option C — Skip (degraded mode):**
 You can run MDEMG without an embedding provider. Ingestion, observation storage, consolidation structure, and most API endpoints will work. Semantic recall and LLM-powered naming will be unavailable or return empty results.

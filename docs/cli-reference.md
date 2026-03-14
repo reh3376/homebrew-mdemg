@@ -687,9 +687,15 @@ Install MDEMG git hooks into the repository's `.git/hooks/` directory.
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--type` | string | `"git"` | Hook type to install |
-| `--force` | bool | `false` | Overwrite existing hooks |
-| `--space-id` | string | `""` | Space ID to configure in hooks |
+| `--type` | string | `"git"` | Hook type: `git`, `claude`, or `all` |
+| `--force` | bool | `false` | Overwrite existing MDEMG hooks |
+| `--space-id` | string | `""` | Space ID for hooks |
+| `--server-url` | string | `"http://localhost:9999"` | MDEMG server URL |
+
+**Hook types:**
+- `git` — post-commit hook for incremental code ingestion
+- `claude` — Claude Code hooks for CMS recall, Jiminy inner voice, and session memory
+- `all` — both git and claude hooks
 
 **Usage Examples:**
 ```bash
@@ -1451,9 +1457,9 @@ The following table lists all environment variables recognized by MDEMG, grouped
 | `DEFAULT_HOP_DEPTH` | int | `2` | Graph traversal hop depth |
 | `MAX_NEIGHBORS_PER_NODE` | int | `50` | Max neighbors fetched per node during activation |
 | `MAX_TOTAL_EDGES_FETCHED` | int | `5000` | Max total edges fetched per query |
-| `SCORING_ALPHA` | float64 | `0.55` | Vector similarity weight |
-| `SCORING_BETA` | float64 | `0.30` | Activation weight |
-| `SCORING_GAMMA` | float64 | `0.10` | Recency weight |
+| `SCORING_ALPHA` | float64 | `0.60` | Vector similarity weight |
+| `SCORING_BETA` | float64 | `0.20` | Activation weight |
+| `SCORING_GAMMA` | float64 | `0.15` | Recency weight |
 | `SCORING_DELTA` | float64 | `0.05` | Confidence weight |
 | `SCORING_PHI` | float64 | `0.08` | Hub penalty coefficient |
 | `SCORING_KAPPA` | float64 | `0.12` | Redundancy penalty coefficient |
@@ -1549,8 +1555,8 @@ The following table lists all environment variables recognized by MDEMG, grouped
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
 | `TEMPORAL_ENABLED` | bool | `true` | Enable temporal reasoning |
-| `TEMPORAL_SOFT_BOOST_MULTIPLIER` | float64 | `3.0` | Gamma multiplier for recency boost |
-| `TEMPORAL_HARD_FILTER_ENABLED` | bool | `true` | Enable hard-mode time range filtering |
+| `TEMPORAL_SOFT_BOOST` | float64 | `3.0` | Gamma multiplier for recency boost |
+| `TEMPORAL_HARD_FILTER` | bool | `true` | Enable hard-mode time range filtering |
 | `TEMPORAL_SOURCE_TYPE_DECAY` | bool | `false` | Enable source-type-specific decay rates |
 | `SCORING_RHO_DOCUMENTATION` | float64 | `0.01` | Decay rate for documentation |
 | `SCORING_RHO_CONFIG` | float64 | `0.03` | Decay rate for config |
@@ -1952,6 +1958,125 @@ The following table lists all environment variables recognized by MDEMG, grouped
 | `SYNC_INTERVAL_MINUTES` | int | `0` | Scheduled sync check interval (0 = disabled) |
 | `SYNC_STALE_THRESHOLD_HOURS` | int | `24` | Hours before a space is stale |
 | `MDEMG_SPACE_ID` | string | `""` | Default space ID (used by CLI) |
+
+### Jiminy Guidance (Phase Jiminy)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JIMINY_ENABLED` | `true` | Enable Jiminy inner voice guidance |
+| `JIMINY_TIMEOUT_MS` | `6000` | Overall timeout for Guide() in ms |
+| `JIMINY_MAX_ITEMS` | `10` | Max guidance items returned |
+| `JIMINY_MIN_CONFIDENCE` | `0.3` | Minimum confidence to include item |
+| `JIMINY_INCLUDE_FRONTIERS` | `true` | Include frontier node suggestions |
+| `JIMINY_FRONTIER_MIN_SIM` | `0.5` | Min similarity for frontier nodes |
+
+### Dynamic Reclassification
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RECLASS_ENABLED` | `false` | Enable dynamic reclassification |
+| `RECLASS_THRESHOLD` | `0.6` | Confidence threshold for reclassification |
+| `RECLASS_MAX_SAMPLE_SIZE` | `50` | Max nodes to sample per run |
+| `RECLASS_MAX_CATEGORIES` | `20` | Max categories for reclassification |
+| `RECLASS_MAX_ITERATIONS` | `5` | Max reclassification iterations |
+| `RECLASS_MAX_DEPTH` | `3` | Max depth for recursive reclassification |
+| `RECLASS_PROVIDER` | (from `LLM_PROVIDER`) | LLM provider |
+| `RECLASS_MODEL` | (from `LLM_MODEL`) | Model for reclassification |
+| `RECLASS_MAX_TOKENS` | `500` | Max tokens for reclassification response |
+| `RECLASS_TIMEOUT_MS` | `10000` | Timeout in ms |
+
+### Cluster Summarization
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLUSTER_SUMMARY_ENABLED` | `false` | Enable cluster summarization |
+| `CLUSTER_SUMMARY_PROVIDER` | (from `LLM_PROVIDER`) | LLM provider |
+| `CLUSTER_SUMMARY_MODEL` | (from `LLM_MODEL`) | Model for summaries |
+| `CLUSTER_SUMMARY_MAX_TOKENS` | `100` | Max tokens per summary |
+| `CLUSTER_SUMMARY_TIMEOUT_MS` | `5000` | Timeout per call in ms |
+| `CLUSTER_SUMMARY_BATCH_SIZE` | `50` | Max nodes per consolidation run |
+
+### ANN Learning Optimization
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LEARNING_CAUTIOUS_DECAY_WINDOW_HOURS` | `24` | Skip decay for edges reinforced within this window (0=disabled) |
+| `LEARNING_ETA_CONVERSATION_MULT` | `2.0` | Eta multiplier for conversation observations |
+| `LEARNING_ETA_CONFIG_MULT` | `1.5` | Eta multiplier for config-code edges |
+| `LEARNING_ETA_SAME_DIR_MULT` | `1.2` | Eta multiplier for same-directory nodes |
+| `LEARNING_SCHEDULE_ENABLED` | `true` | Enable maturity-based learning rate schedule |
+| `LEARNING_SCHEDULE_COLD_MULT` | `2.0` | Multiplier for cold spaces (0 edges) |
+| `LEARNING_SCHEDULE_LEARNING_MULT` | `1.0` | Multiplier for learning spaces (1-10k edges) |
+| `LEARNING_SCHEDULE_WARM_MULT` | `0.5` | Multiplier for warm spaces (10k-50k edges) |
+| `LEARNING_SCHEDULE_SAT_MULT` | `0.25` | Multiplier for saturated spaces (50k+ edges) |
+
+### ANN Scoring Optimization
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SCORING_ACTIVATION_FLOOR` | `0.05` | Floor below which activation is zeroed |
+| `SCORING_ACTIVATION_SQUARED` | `true` | Enable squared activation for sharper signals |
+| `SCORING_BM25_WEIGHT` | `0.15` | Weight for BM25 component in final score |
+| `SCORING_BYPASS_THRESHOLD` | `0.85` | VectorSim threshold to trigger value residual bypass |
+| `SCORING_BYPASS_WEIGHT` | `0.15` | Weight of bypass bonus |
+| `SCORING_BYPASS_CODE_MULT` | `1.3` | Bypass multiplier for code queries |
+| `SCORING_BYPASS_ARCH_MULT` | `0.5` | Bypass multiplier for architecture queries |
+
+### ANN Activation Optimization
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ACTIVATION_STEPS` | `2` | Number of activation hops (1-10) |
+| `ACTIVATION_LAMBDA` | `0.15` | Decay factor per hop (0.0-0.9) |
+| `ACTIVATION_HOP0_MIN_WEIGHT` | `0.5` | Min edge weight for hop 0 |
+| `ACTIVATION_HOP1_MIN_WEIGHT` | `0.2` | Min edge weight for hop 1 |
+| `ACTIVATION_HOP2_MIN_WEIGHT` | `0.05` | Min edge weight for hop 2+ |
+
+### Negative Feedback
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LEARNING_NEGATIVE_WEIGHT` | `0.15` | Weight reduction per negative feedback |
+| `LEARNING_NEGATIVE_DECAY_MULT` | `2.0` | Decay multiplier for contradicted edges |
+| `LEARNING_NEGATIVE_MAX_PER_REQUEST` | `20` | Max rejected nodes per request |
+
+### Frontier Detection
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FRONTIER_MIN_EVIDENCE` | `3` | Min evidence_count for frontier candidates |
+| `FRONTIER_MAX_OUTGOING` | `2` | Max outgoing edges for frontier candidates |
+
+### Jina Cross-Encoder Reranking
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RERANK_JINA_API_KEY` | (none) | Jina API key |
+| `RERANK_JINA_MODEL` | `jina-reranker-v2-base-multilingual` | Jina reranker model |
+| `RERANK_JINA_URL` | `https://api.jina.ai/v1` | Jina API endpoint |
+
+### L5 Grounding
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `L5_GROUNDING_MAX_EDGES` | `5` | Max GROUNDED_BY edges per L5 node |
+| `L5_GROUNDING_MIN_SIM` | `0.4` | Min cosine similarity for grounding edge |
+| `L5_GROUNDING_INITIAL_WEIGHT` | `0.5` | Initial weight for GROUNDED_BY edges |
+| `EDGE_ATTENTION_GROUNDED_BY` | `0.70` | Attention weight for GROUNDED_BY edges |
+
+### RRF (Reciprocal Rank Fusion)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RRF_CONSTANT` | `60` | RRF k parameter (min: 1) |
+
+### Dynamic Port Allocation
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT_RANGE_START` | (from `LISTEN_ADDR`) | Start of fallback port range |
+| `PORT_RANGE_END` | `PORT_RANGE_START + 100` | End of fallback port range |
+| `PORT_FILE_PATH` | `.mdemg.port` | Port file for client discovery |
 
 ---
 

@@ -41,9 +41,9 @@ mdemg ingest --path ./src --space-id myproject --dry-run
 mdemg ingest --path ./src --space-id myproject --verbose
 ```
 
-### Language Support (28 Languages)
+### Language Support (27 Languages)
 
-MDEMG includes dedicated parsers for 28 languages and file formats. Each parser extracts structured code elements (functions, classes, structs, modules) and optionally detailed symbols.
+MDEMG includes dedicated parsers for 27 languages and file formats. Each parser extracts structured code elements (functions, classes, structs, modules) and optionally detailed symbols.
 
 List all supported languages:
 ```bash
@@ -969,7 +969,8 @@ The uninstall command only removes hooks with the `# MDEMG` marker comment. Non-
 
 | Flag | Description |
 |------|-------------|
-| `--type git` | (Default) Install git post-commit hook |
+| `--type git` | (Default) Install git post-commit hook for incremental ingestion |
+| `--type claude` | Install Claude Code hooks (CMS recall, Jiminy guidance, session memory) |
 | `--type all` | Install all available hook types |
 
 ---

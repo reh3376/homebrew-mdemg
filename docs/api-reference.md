@@ -18,24 +18,26 @@ Complete HTTP API reference for the Multi-Dimensional Emergent Memory Graph (MDE
 10. [Org Reviews](#org-reviews)
 11. [Meta-Learning](#meta-learning)
 12. [Guardrail Validation](#guardrail-validation)
-13. [Spaces & Freshness](#spaces--freshness)
-14. [Jobs (SSE)](#jobs-sse)
-15. [Codebase Ingestion API](#codebase-ingestion-api)
-16. [Ingestion Pipeline API](#ingestion-pipeline-api)
-17. [Scraper API](#scraper-api)
-18. [Linear Integration API](#linear-integration-api)
-19. [Webhooks](#webhooks)
-20. [File Watcher API](#file-watcher-api)
-21. [Admin](#admin)
-22. [Self-Improvement (RSIC) API](#self-improvement-rsic-api)
-23. [Backup & Restore](#backup--restore)
-24. [Symbols & Relationships](#symbols--relationships)
-25. [Cleanup](#cleanup)
-26. [Edge Consistency](#edge-consistency)
-27. [Metrics & Monitoring](#metrics--monitoring)
-28. [Hash Verification (UNTS)](#hash-verification-unts)
-29. [Plugins & Modules](#plugins--modules)
-30. [System](#system)
+13. [Jiminy Guidance](#jiminy-guidance)
+14. [Spaces & Freshness](#spaces--freshness)
+15. [Jobs (SSE)](#jobs-sse)
+16. [Codebase Ingestion API](#codebase-ingestion-api)
+17. [Ingestion Pipeline API](#ingestion-pipeline-api)
+18. [Scraper API](#scraper-api)
+19. [Linear Integration API](#linear-integration-api)
+20. [Webhooks](#webhooks)
+21. [File Watcher API](#file-watcher-api)
+22. [Admin](#admin)
+23. [Self-Improvement (RSIC) API](#self-improvement-rsic-api)
+24. [Backup & Restore](#backup--restore)
+25. [Symbols & Relationships](#symbols--relationships)
+26. [Cleanup](#cleanup)
+27. [Edge Consistency](#edge-consistency)
+28. [Metrics & Monitoring](#metrics--monitoring)
+29. [Hash Verification (UNTS)](#hash-verification-unts)
+30. [Plugins & Modules](#plugins--modules)
+31. [System](#system)
+32. [MCP Server Tools](#mcp-server-tools)
 
 ---
 
@@ -728,6 +730,37 @@ curl -s http://localhost:9999/v1/memory/query/metrics
 
 ---
 
+### GET /v1/memory/frontiers
+
+Detect frontier nodes — L3+ nodes with sufficient evidence but few outgoing edges, ready for expansion.
+
+**Query Parameters:** `space_id` (required), `limit` (default 20, max 100).
+
+```bash
+curl -s "http://localhost:9999/v1/memory/frontiers?space_id=myproject&limit=10"
+```
+
+**Response (200):**
+```json
+{
+  "frontiers": [
+    {
+      "node_id": "hidden-abc123",
+      "name": "Authentication Patterns",
+      "layer": 3,
+      "summary": "Recurring auth middleware patterns",
+      "outgoing_edges": 1,
+      "evidence": 5
+    }
+  ],
+  "count": 1
+}
+```
+
+**Config:** `FRONTIER_MIN_EVIDENCE`, `FRONTIER_MAX_OUTGOING`.
+
+---
+
 ## Learning Edges
 
 ### POST /v1/learning/freeze
@@ -816,6 +849,29 @@ curl -s "http://localhost:9999/v1/learning/stats?space_id=demo"
 Prune weak learning edges.
 
 **Status Codes:** `200 OK`, `400 Bad Request`
+
+---
+
+### POST /v1/learning/negative-feedback
+
+Weaken or contradict learning edges for rejected retrieval results.
+
+**Request:**
+```json
+{
+  "space_id": "myproject",
+  "query_node_ids": ["node-1", "node-2"],
+  "rejected_node_ids": ["node-3", "node-4"]
+}
+```
+
+All fields required. `query_node_ids` and `rejected_node_ids` must be non-empty arrays.
+
+**Response (200):** Stats about weakened/contradicted edges.
+
+**Status Codes:** `200 OK`, `400 Bad Request` (empty arrays or missing space_id), `500 Internal Server Error`.
+
+**Config:** `LEARNING_NEGATIVE_WEIGHT`, `LEARNING_NEGATIVE_DECAY_MULT`, `LEARNING_NEGATIVE_MAX_PER_REQUEST`.
 
 ---
 
@@ -1543,6 +1599,63 @@ curl -s -X POST http://localhost:9999/v1/memory/guardrail/validate \
   -H "Content-Type: application/json" \
   -d '{"space_id":"demo","files_changed":["src/main.go"],"diff":"..."}'
 ```
+
+---
+
+## Jiminy Guidance
+
+### POST /v1/jiminy/guide
+
+Proactive inner voice guidance — surfaces constraints, corrections, patterns, conflicts, and frontier suggestions based on the current context.
+
+**Request:**
+```json
+{
+  "space_id": "mdemg-dev",
+  "context": "User is refactoring the authentication middleware",
+  "file_path": "internal/auth/middleware.go",
+  "agent_output": "proposed code changes...",
+  "query": "refactor auth middleware",
+  "session_id": "claude-core",
+  "max_items": 10
+}
+```
+
+**Fields:** `space_id` (required), `context` (required), `file_path` (optional), `agent_output` (optional), `query` (optional), `session_id` (optional), `max_items` (optional, default 10).
+
+**Response (200):**
+```json
+{
+  "data": {
+    "guidance": [
+      {
+        "type": "constraint",
+        "priority": "high",
+        "content": "Auth middleware must use JWT tokens with 24-hour expiry",
+        "confidence": 0.85,
+        "source_nodes": ["obs-abc123"]
+      }
+    ],
+    "prompt_augmentation": "Consider these constraints: ...",
+    "confidence": 0.78,
+    "rationale": "Found 3 relevant constraints from prior sessions",
+    "warnings": [],
+    "source_counts": {
+      "constraints": 1,
+      "corrections": 2,
+      "patterns": 0,
+      "conflicts": 0,
+      "frontiers": 1
+    }
+  }
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request` (missing space_id or context), `503 Service Unavailable` (JIMINY_ENABLED=false).
+
+**Guidance types:** `constraint`, `correction`, `pattern`, `conflict`, `risk`, `suggestion`, `frontier`.
+
+**Config:** `JIMINY_ENABLED`, `JIMINY_TIMEOUT_MS`, `JIMINY_MAX_ITEMS`, `JIMINY_MIN_CONFIDENCE`, `JIMINY_INCLUDE_FRONTIERS`, `JIMINY_FRONTIER_MIN_SIM`.
 
 ---
 
@@ -2356,6 +2469,21 @@ curl -s -X POST http://localhost:9999/v1/self-improve/rollback \
 
 ---
 
+### POST /v1/self-improve/orchestration/reset
+
+Reset RSIC orchestration state (cooldowns, active tasks). Used for test isolation.
+
+No request body.
+
+**Response (200):**
+```json
+{"reset": true}
+```
+
+**Status Codes:** `200 OK`, `503 Service Unavailable` (orchestration not initialized).
+
+---
+
 ## Backup & Restore
 
 ### POST /v1/backup/trigger
@@ -2884,6 +3012,54 @@ List gap interview sessions.
 ### GET/POST /v1/system/gap-interviews/{id}
 
 Manage a specific gap interview.
+
+---
+
+## MCP Server Tools
+
+The MDEMG MCP server provides 20 tools for IDE integration. Start with `mdemg mcp` (stdio mode) or `mdemg serve --mcp` (co-launch with HTTP server).
+
+**Memory Tools:**
+| Tool | Description |
+|------|-------------|
+| `memory_store` | Store an observation in the knowledge graph |
+| `memory_recall` | Semantic search across the knowledge graph |
+| `memory_associate` | Create typed edges between nodes |
+| `memory_reflect` | Generate a reflection on a topic |
+| `memory_status` | Get space health and statistics |
+| `memory_symbols` | Search extracted code symbols |
+
+**Ingestion Tools:**
+| Tool | Description |
+|------|-------------|
+| `memory_ingest_trigger` | Trigger codebase ingestion job |
+| `memory_ingest_status` | Check ingestion job status |
+| `memory_ingest_cancel` | Cancel a running ingestion job |
+| `memory_ingest_jobs` | List all ingestion jobs |
+| `memory_ingest_files` | Ingest specific files |
+
+**Space Tools:**
+| Tool | Description |
+|------|-------------|
+| `memory_space_freshness` | Check space freshness and staleness |
+
+**Linear Integration Tools:**
+| Tool | Description |
+|------|-------------|
+| `linear_create_issue` | Create a Linear issue |
+| `linear_list_issues` | List Linear issues with filters |
+| `linear_read_issue` | Read a specific Linear issue |
+| `linear_update_issue` | Update a Linear issue |
+| `linear_add_comment` | Add a comment to a Linear issue |
+| `linear_search` | Search Linear issues |
+
+**Cognitive Tools:**
+| Tool | Description |
+|------|-------------|
+| `validate_changes` | Validate proposed changes against learned constraints |
+| `jiminy_guide` | Get proactive guidance for the current context |
+
+**Connection:** `mdemg mcp` runs in stdio mode. The MCP server connects to the MDEMG HTTP API (resolved via `MDEMG_ENDPOINT`, `.mdemg.port` file, or `LISTEN_ADDR`). Configure in `.claude/mcp.json` or your IDE's MCP settings.
 
 ---
 

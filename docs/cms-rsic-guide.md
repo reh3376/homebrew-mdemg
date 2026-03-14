@@ -23,7 +23,8 @@ This guide covers the two core runtime systems in MDEMG: the **Conversation Memo
    - [History and Calibration](#history-and-calibration)
    - [Learning Freeze](#learning-freeze)
    - [Rollback](#rollback)
-6. [Practical Examples](#practical-examples)
+6. [Jiminy Inner Voice Guidance](#jiminy-inner-voice-guidance)
+7. [Practical Examples](#practical-examples)
    - [Setting Up CMS for a New AI Agent](#setting-up-cms-for-a-new-ai-agent)
    - [Daily Maintenance Workflow](#daily-maintenance-workflow)
    - [Debugging Poor Retrieval Quality](#debugging-poor-retrieval-quality)
@@ -1008,6 +1009,80 @@ Rollback restores the pre-action state. It will fail if the snapshot has expired
 
 ---
 
+## Jiminy Inner Voice Guidance
+
+Jiminy is MDEMG's proactive guidance service — an "inner voice" that reviews the current context and surfaces relevant constraints, prior corrections, recognized patterns, potential conflicts, and frontier opportunities from the knowledge graph.
+
+### How It Works
+
+1. The agent submits the current context (what it's working on) via `POST /v1/jiminy/guide`
+2. Jiminy queries the knowledge graph for relevant observations
+3. It categorizes findings into guidance types: `constraint`, `correction`, `pattern`, `conflict`, `risk`, `suggestion`, `frontier`
+4. Results are returned as a structured guidance response with confidence scores
+
+### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JIMINY_ENABLED` | `true` | Enable Jiminy guidance |
+| `JIMINY_TIMEOUT_MS` | `6000` | Timeout for Guide() call |
+| `JIMINY_MAX_ITEMS` | `10` | Max guidance items returned |
+| `JIMINY_MIN_CONFIDENCE` | `0.3` | Min confidence threshold |
+| `JIMINY_INCLUDE_FRONTIERS` | `true` | Include frontier suggestions |
+| `JIMINY_FRONTIER_MIN_SIM` | `0.5` | Min similarity for frontiers |
+
+### Usage
+
+```bash
+curl -s -X POST http://localhost:9999/v1/jiminy/guide \
+  -H "Content-Type: application/json" \
+  -d '{
+    "space_id": "myproject",
+    "context": "Refactoring the authentication middleware to use OAuth2",
+    "file_path": "internal/auth/middleware.go",
+    "session_id": "dev-session-1"
+  }'
+```
+
+Response:
+```json
+{
+  "data": {
+    "guidance": [
+      {
+        "type": "correction",
+        "priority": "high",
+        "content": "Previous session noted: always validate token expiry server-side, not client-side",
+        "confidence": 0.9,
+        "source_nodes": ["obs-correction-abc"]
+      },
+      {
+        "type": "frontier",
+        "priority": "low",
+        "content": "OAuth2 refresh token rotation is a known knowledge gap",
+        "confidence": 0.6,
+        "source_nodes": ["hidden-frontier-xyz"]
+      }
+    ],
+    "prompt_augmentation": "Based on prior sessions: (1) Validate token expiry server-side...",
+    "confidence": 0.78,
+    "rationale": "Found 1 correction and 1 frontier related to auth middleware",
+    "source_counts": {"constraints": 0, "corrections": 1, "patterns": 0, "conflicts": 0, "frontiers": 1}
+  }
+}
+```
+
+### Claude Code Integration
+
+When using MDEMG with Claude Code, Jiminy is called automatically on every prompt via the `prompt-context.sh` hook. The guidance is injected into the system context as a `JIMINY GUIDANCE` block. No manual API calls needed.
+
+To install the Claude Code hooks:
+```bash
+mdemg hooks install --type claude
+```
+
+---
+
 ## Practical Examples
 
 ### Setting Up CMS for a New AI Agent
@@ -1332,6 +1407,12 @@ echo "Snapshots held: $(echo "$HEALTH" | jq '.safety.rollback.snapshots_held')"
 | GET | `/v1/self-improve/signals` | Signal effectiveness tracking |
 | GET | `/v1/self-improve/rollback` | List available snapshots |
 | POST | `/v1/self-improve/rollback` | Execute a rollback |
+
+### Jiminy Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/v1/jiminy/guide` | Get proactive inner voice guidance for current context |
 
 ### Learning Endpoints
 
