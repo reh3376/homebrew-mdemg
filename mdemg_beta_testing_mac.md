@@ -216,6 +216,20 @@ EOF
 
 ---
 
+## Reference Documentation
+
+These docs cover everything you're testing. Use them for troubleshooting, understanding expected behavior, or exploring beyond the test plan.
+
+| Guide | What it covers |
+|-------|---------------|
+| [README](README.md) | Quick start, commands overview, configuration, troubleshooting |
+| [CLI Reference](docs/cli-reference.md) | All commands, flags, defaults, examples, environment variables |
+| [API Reference](docs/api-reference.md) | Every HTTP endpoint with request/response shapes and curl examples |
+| [CMS & RSIC Guide](docs/cms-rsic-guide.md) | Conversation memory, Jiminy inner-voice guidance, observation types, self-improvement cycles |
+| [Ingestion Guide](docs/ingestion-guide.md) | All 8 ingestion methods — codebase, scraper, Linear, webhooks, file watcher, API |
+
+---
+
 ## Tier 1: Installation & Core (~30 min)
 
 ### T1.1: Installation
@@ -405,6 +419,8 @@ mdemg embeddings check
 
 ## Tier 2: Ingestion (~20 min)
 
+> **Reference:** [Ingestion Guide](docs/ingestion-guide.md) covers all 8 ingestion methods in detail. [API Reference](docs/api-reference.md#codebase-ingestion-api) has full endpoint documentation.
+
 ### T2.1: Codebase Ingestion (CLI)
 
 ```bash
@@ -554,6 +570,8 @@ curl -s http://localhost:9999/v1/linear/issues?space_id=beta-test
 ---
 
 ## Tier 3: CMS & RSIC (~20 min)
+
+> **Reference:** [CMS & RSIC Guide](docs/cms-rsic-guide.md) explains the full CMS workflow, RSIC pipeline, Jiminy inner-voice guidance, and includes practical examples. [API Reference](docs/api-reference.md#conversation-memory) has all endpoint shapes.
 
 ### T3.1: Observe (Multiple Types)
 
@@ -798,6 +816,8 @@ mdemg space list
 
 ## Tier 5: Advanced (~15 min)
 
+> **Reference:** [CLI Reference](docs/cli-reference.md) has full flag details for every command. [API Reference](docs/api-reference.md#mcp-server-tools) covers MCP server tools.
+
 ### T5.1: Secrets (macOS Keychain)
 
 ```bash
@@ -932,6 +952,8 @@ mdemg config set-secret TEST_BETA_KEY ""
 ---
 
 ## Known macOS Limitations
+
+> **See also:** [README — Troubleshooting](README.md#troubleshooting) for common issues and fixes.
 
 ### 1. Daemon Mode (`mdemg start/stop/restart`)
 
