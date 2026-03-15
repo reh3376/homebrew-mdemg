@@ -52,12 +52,13 @@ Interactive project initialization wizard. Detects the local environment (Docker
 |------|------|---------|-------------|
 | `--defaults` | bool | `false` | Accept all defaults without prompting |
 | `--yes` | bool | `false` | Alias for `--defaults` |
-| `--quick` | bool | `false` | Minimal init — skip optional features |
+| `--quick` | bool | `false` | Full auto-setup — config, Neo4j, server, migrations, ingest, and menu bar app |
 | `--space-id` | string | `""` | Pre-set space ID |
 | `--neo4j-uri` | string | `""` | Pre-set Neo4j URI |
 | `--embedding-provider` | string | `""` | Pre-set embedding provider (openai/ollama) |
 | `--no-hooks` | bool | `false` | Skip git hook installation |
 | `--no-ide` | bool | `false` | Skip IDE config generation |
+| `--no-menubar` | bool | `false` | Skip menu bar app installation |
 
 **Usage Examples:**
 ```bash
@@ -1031,6 +1032,50 @@ mdemg upgrade --force
 
 ---
 
+### `mdemg menubar`
+
+Parent command for managing the MDEMG menu bar companion app. The menu bar app provides a system tray icon showing server health status and quick access to MDEMG features.
+
+Subcommands: `start`, `stop`, `restart`, `status`
+
+On `mdemg init`, the menu bar app is automatically downloaded from GitHub releases and installed to `~/Applications`. Use `--no-menubar` to skip this.
+
+### `mdemg menubar start`
+
+**Synopsis:** `mdemg menubar start`
+
+Launch the MDEMG menu bar app. Searches for `MdemgMenuBar.app` in `~/Applications`, `/Applications`, and via Spotlight.
+
+### `mdemg menubar stop`
+
+**Synopsis:** `mdemg menubar stop`
+
+Stop the running menu bar app. Sends SIGTERM, polls for exit (up to 10s), then force kills if needed.
+
+### `mdemg menubar restart`
+
+**Synopsis:** `mdemg menubar restart`
+
+Stop and relaunch the menu bar app.
+
+### `mdemg menubar status`
+
+**Synopsis:** `mdemg menubar status`
+
+Show whether the menu bar app is running (with PID) and its install path.
+
+**Usage Examples:**
+```bash
+mdemg menubar start
+mdemg menubar stop
+mdemg menubar restart
+mdemg menubar status
+```
+
+**See Also:** `mdemg init --no-menubar`
+
+---
+
 ## Advanced
 
 ### `mdemg mcp`
@@ -1439,7 +1484,7 @@ The following table lists all environment variables recognized by MDEMG, grouped
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `LISTEN_ADDR` | string | `":8080"` | HTTP server listen address |
+| `LISTEN_ADDR` | string | `":9999"` | HTTP server listen address |
 | `NEO4J_URI` | string | *required* | Neo4j Bolt URI (e.g., `bolt://localhost:7687`) |
 | `NEO4J_USER` | string | *required* | Neo4j username |
 | `NEO4J_PASS` | string | *required* | Neo4j password |
@@ -2139,6 +2184,11 @@ mdemg
       detach-agent    Detach an AI agent adapter
       generate-hooks  Generate git hooks
       uninstall       Uninstall sidecar
+    menubar           Manage menu bar app
+      start           Launch the menu bar app
+      stop            Stop the menu bar app
+      restart         Restart the menu bar app
+      status          Show menu bar app status
     upgrade           Self-update the mdemg binary
 
   Advanced:

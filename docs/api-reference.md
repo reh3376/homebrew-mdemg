@@ -18,7 +18,7 @@ Complete HTTP API reference for the Multi-Dimensional Emergent Memory Graph (MDE
 10. [Org Reviews](#org-reviews)
 11. [Meta-Learning](#meta-learning)
 12. [Guardrail Validation](#guardrail-validation)
-13. [Jiminy Guidance](#jiminy-guidance)
+13. [Jiminy Inner-Voice](#jiminy-inner-voice)
 14. [Spaces & Freshness](#spaces--freshness)
 15. [Jobs (SSE)](#jobs-sse)
 16. [Codebase Ingestion API](#codebase-ingestion-api)
@@ -1602,26 +1602,38 @@ curl -s -X POST http://localhost:9999/v1/memory/guardrail/validate \
 
 ---
 
-## Jiminy Guidance
+## Jiminy Inner-Voice
+
+Proactive guidance for AI agents — surfaces constraints, prior corrections, contradictions, and frontier knowledge relevant to the current context. Acts as an "inner voice" that reviews what the agent is about to do and injects domain-specific warnings before mistakes happen.
+
+Jiminy must be explicitly enabled via `JIMINY_ENABLED=true`. When disabled, all endpoints return `503 Service Unavailable`.
 
 ### POST /v1/jiminy/guide
 
-Proactive inner voice guidance — surfaces constraints, corrections, patterns, conflicts, and frontier suggestions based on the current context.
+Generate guidance items for the given context. Fans out to four parallel knowledge sources (constraints, corrections, contradictions, frontiers), merges and ranks results.
 
-**Request:**
+**Request Body:**
 ```json
 {
-  "space_id": "mdemg-dev",
-  "context": "User is refactoring the authentication middleware",
-  "file_path": "internal/auth/middleware.go",
-  "agent_output": "proposed code changes...",
-  "query": "refactor auth middleware",
+  "space_id": "my-project",
+  "context": "Implementing JWT auth middleware for the API gateway",
   "session_id": "claude-core",
-  "max_items": 10
+  "query": "How should I handle token refresh?",
+  "file_path": "src/middleware/auth.go",
+  "agent_output": "func AuthMiddleware(next http.Handler) http.Handler { ... }",
+  "max_items": 5
 }
 ```
 
-**Fields:** `space_id` (required), `context` (required), `file_path` (optional), `agent_output` (optional), `query` (optional), `session_id` (optional), `max_items` (optional, default 10).
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `space_id` | string | yes | Memory space to search |
+| `context` | string | yes | What the agent is currently doing (user prompt, task description) |
+| `session_id` | string | no | Session identifier for correction lookup |
+| `query` | string | no | User's original query |
+| `file_path` | string | no | File being worked on (used to refine embedding search) |
+| `agent_output` | string | no | Agent's proposed output to review |
+| `max_items` | int | no | Max guidance items returned (default: configured via `JIMINY_MAX_ITEMS`, fallback 10) |
 
 **Response (200):**
 ```json
@@ -1631,31 +1643,62 @@ Proactive inner voice guidance — surfaces constraints, corrections, patterns, 
       {
         "type": "constraint",
         "priority": "high",
-        "content": "Auth middleware must use JWT tokens with 24-hour expiry",
+        "content": "All API endpoints must validate JWT tokens — see constraint const-jwt-001",
+        "confidence": 0.92,
+        "source_nodes": ["const-jwt-001"]
+      },
+      {
+        "type": "correction",
+        "priority": "medium",
+        "content": "Previous session: token refresh was broken when using HS256 — switch to RS256",
         "confidence": 0.85,
         "source_nodes": ["obs-abc123"]
       }
     ],
-    "prompt_augmentation": "Consider these constraints: ...",
-    "confidence": 0.78,
-    "rationale": "Found 3 relevant constraints from prior sessions",
-    "warnings": [],
+    "prompt_augmentation": "Based on your memory: (1) JWT validation is mandatory...",
+    "confidence": 0.88,
+    "rationale": "Found 1 constraint and 1 prior correction relevant to auth middleware",
     "source_counts": {
       "constraints": 1,
-      "corrections": 2,
+      "corrections": 1,
       "patterns": 0,
       "conflicts": 0,
-      "frontiers": 1
+      "frontiers": 0
     }
   }
 }
 ```
 
-**Status Codes:** `200 OK`, `400 Bad Request` (missing space_id or context), `503 Service Unavailable` (JIMINY_ENABLED=false).
+**Guidance types:** `constraint`, `correction`, `pattern`, `conflict`, `risk`, `suggestion`, `frontier`
 
-**Guidance types:** `constraint`, `correction`, `pattern`, `conflict`, `risk`, `suggestion`, `frontier`.
+**Priority levels:** `high`, `medium`, `low`
 
-**Config:** `JIMINY_ENABLED`, `JIMINY_TIMEOUT_MS`, `JIMINY_MAX_ITEMS`, `JIMINY_MIN_CONFIDENCE`, `JIMINY_INCLUDE_FRONTIERS`, `JIMINY_FRONTIER_MIN_SIM`.
+**Response (503):** Jiminy is disabled (`JIMINY_ENABLED=false`)
+```json
+{
+  "error": "jiminy guidance is not enabled (set JIMINY_ENABLED=true)"
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request` (missing space_id or context), `503 Service Unavailable`
+
+```bash
+curl -s -X POST http://localhost:9999/v1/jiminy/guide \
+  -H "Content-Type: application/json" \
+  -d '{
+    "space_id": "my-project",
+    "context": "Adding database migration for user sessions table",
+    "session_id": "dev-session-01"
+  }' | jq .
+```
+
+**Related environment variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JIMINY_ENABLED` | `false` | Enable/disable Jiminy guidance |
+| `JIMINY_MAX_ITEMS` | `10` | Default max guidance items per request |
+| `JIMINY_TIMEOUT_MS` | `6000` | Timeout for guidance generation (ms) |
 
 ---
 

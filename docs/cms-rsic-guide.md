@@ -23,7 +23,7 @@ This guide covers the two core runtime systems in MDEMG: the **Conversation Memo
    - [History and Calibration](#history-and-calibration)
    - [Learning Freeze](#learning-freeze)
    - [Rollback](#rollback)
-6. [Jiminy Inner Voice Guidance](#jiminy-inner-voice-guidance)
+6. [Jiminy Inner-Voice Guidance](#jiminy-inner-voice-guidance)
 7. [Practical Examples](#practical-examples)
    - [Setting Up CMS for a New AI Agent](#setting-up-cms-for-a-new-ai-agent)
    - [Daily Maintenance Workflow](#daily-maintenance-workflow)
@@ -1009,39 +1009,31 @@ Rollback restores the pre-action state. It will fail if the snapshot has expired
 
 ---
 
-## Jiminy Inner Voice Guidance
+## Jiminy Inner-Voice Guidance
 
-Jiminy is MDEMG's proactive guidance service — an "inner voice" that reviews the current context and surfaces relevant constraints, prior corrections, recognized patterns, potential conflicts, and frontier opportunities from the knowledge graph.
+Jiminy is MDEMG's proactive guidance service — an "inner voice" for AI agents that surfaces constraints, prior corrections, contradictions, and frontier knowledge *before* the agent acts. Instead of relying on the agent to recall the right context, Jiminy pushes relevant warnings into the conversation automatically.
 
 ### How It Works
 
-1. The agent submits the current context (what it's working on) via `POST /v1/jiminy/guide`
-2. Jiminy queries the knowledge graph for relevant observations
-3. It categorizes findings into guidance types: `constraint`, `correction`, `pattern`, `conflict`, `risk`, `suggestion`, `frontier`
-4. Results are returned as a structured guidance response with confidence scores
+Jiminy fans out to four parallel knowledge sources:
 
-### Configuration
+1. **Constraints** — learned rules from the consulting service (e.g., "never hardcode secrets")
+2. **Corrections** — prior mistakes found via vector search against correction-type observations
+3. **Contradictions** — CONTRADICTS edges near the current context
+4. **Frontiers** — unexplored or under-explored concepts that may be relevant
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `JIMINY_ENABLED` | `true` | Enable Jiminy guidance |
-| `JIMINY_TIMEOUT_MS` | `6000` | Timeout for Guide() call |
-| `JIMINY_MAX_ITEMS` | `10` | Max guidance items returned |
-| `JIMINY_MIN_CONFIDENCE` | `0.3` | Min confidence threshold |
-| `JIMINY_INCLUDE_FRONTIERS` | `true` | Include frontier suggestions |
-| `JIMINY_FRONTIER_MIN_SIM` | `0.5` | Min similarity for frontiers |
+Results are merged, deduplicated by content similarity, sorted by priority and confidence, and returned as a ranked list of guidance items.
 
-### Usage
+### Standalone API
 
 ```bash
 curl -s -X POST http://localhost:9999/v1/jiminy/guide \
   -H "Content-Type: application/json" \
   -d '{
-    "space_id": "myproject",
-    "context": "Refactoring the authentication middleware to use OAuth2",
-    "file_path": "internal/auth/middleware.go",
-    "session_id": "dev-session-1"
-  }'
+    "space_id": "my-project",
+    "context": "Refactoring the auth middleware to support OAuth2",
+    "session_id": "dev-session-01"
+  }' | jq .
 ```
 
 Response:
@@ -1072,14 +1064,28 @@ Response:
 }
 ```
 
-### Claude Code Integration
+See [API Reference — POST /v1/jiminy/guide](api-reference.md#post-v1jiminyguide) for full request/response field descriptions.
 
-When using MDEMG with Claude Code, Jiminy is called automatically on every prompt via the `prompt-context.sh` hook. The guidance is injected into the system context as a `JIMINY GUIDANCE` block. No manual API calls needed.
+### Hook Integration
 
-To install the Claude Code hooks:
-```bash
-mdemg hooks install --type claude
-```
+In practice, you rarely call Jiminy directly. The `prompt-context.sh` hook calls `POST /v1/jiminy/guide` automatically on every user prompt, injecting a `═══ JIMINY GUIDANCE ═══` block into the system context. This means the agent receives relevant warnings, constraints, and corrections without any manual intervention.
+
+The hook passes the user's prompt as `context` and the active session ID, so guidance is always scoped to what the agent is about to do.
+
+### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JIMINY_ENABLED` | `false` | Must be set to `true` to enable Jiminy. When disabled, the endpoint returns 503 and hooks skip guidance injection. |
+| `JIMINY_MAX_ITEMS` | `10` | Maximum guidance items per request |
+| `JIMINY_TIMEOUT_MS` | `6000` | Timeout for guidance generation (ms). Jiminy queries four sources in parallel; this caps total wall time. |
+| `JIMINY_MIN_CONFIDENCE` | `0.3` | Minimum confidence threshold for inclusion |
+| `JIMINY_INCLUDE_FRONTIERS` | `true` | Include frontier suggestions in guidance |
+| `JIMINY_FRONTIER_MIN_SIM` | `0.5` | Minimum similarity score for frontier matches |
+
+### Relationship to CMS
+
+Jiminy reads from the same knowledge graph that CMS writes to. Corrections captured via `POST /v1/conversation/observe` (with `obs_type: "correction"`) are the primary source for Jiminy's correction guidance. Constraints detected by the consulting service feed into Jiminy's constraint guidance. The `jiminy` field in resume responses reflects the Jiminy health score for the session.
 
 ---
 

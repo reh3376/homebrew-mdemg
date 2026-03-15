@@ -156,9 +156,7 @@ source ~/.zprofile
 
 ## Quick Start
 
-### Option A: Step by step (recommended for beta testing)
-
-Use this option for beta testing — it lets you verify each step individually and catch issues early.
+Use the step-by-step flow to verify each component individually and catch issues early.
 
 **Step 1 — Initialize configuration:**
 
@@ -230,17 +228,6 @@ mdemg ingest --path .
 ```
 
 Expected: scans the directory, extracts code symbols and content, and stores them as observations in the knowledge graph. Output shows files processed and observations created.
-
-### Option B: One command
-
-If you've already completed a beta test and are familiar with the setup, you can use the quick start instead:
-
-```bash
-export OPENAI_API_KEY=sk-...    # skip if using Ollama or no embedding provider
-mdemg init --quick
-```
-
-This runs the full setup sequence: creates config, starts Neo4j, starts the server, applies migrations, and confirms readiness.
 
 **Verify everything is running:**
 
@@ -389,6 +376,7 @@ mdemg space list
 | `mdemg hooks install` | Install git post-commit hooks for auto-ingestion |
 | `mdemg hooks uninstall` | Remove installed git hooks |
 | `mdemg hooks list` | List installed hooks and their status |
+| `mdemg menubar` | Manage menu bar companion app (start/stop/restart/status) |
 | `mdemg decay` | Apply temporal decay to learning edges |
 | `mdemg prune` | Prune weak edges, tombstone orphans |
 | `mdemg sidecar` | Manage sidecar services (up, down, attach, detach) |
@@ -654,5 +642,6 @@ man mdemg-ingest
 ## Links
 
 - [Source Code](https://github.com/reh3376/mdemg)
-- [Windows Installation](https://github.com/reh3376/mdemg-windows)
+- [Menu Bar App](https://github.com/reh3376/mdemg-menubar) — macOS system tray companion
+- [Windows Installer](https://github.com/reh3376/mdemg-windows)
 - [Issues](https://github.com/reh3376/mdemg/issues)
