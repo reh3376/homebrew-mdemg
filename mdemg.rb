@@ -5,14 +5,14 @@
 class Mdemg < Formula
   desc "Multi-Dimensional Emergent Memory Graph — cognitive substrate for AI agents"
   homepage "https://github.com/reh3376/mdemg"
-  version "0.2.13"
+  version "0.2.14"
 
   depends_on "docker" => :optional
   depends_on :macos
 
   if Hardware::CPU.intel?
-    url "https://github.com/reh3376/mdemg/releases/download/v0.2.13/mdemg_0.2.13_darwin_amd64.tar.gz"
-    sha256 "67e09d313d25468ada2863b6fe00c4b17dbbfcc59efb855e659dfc6de5fc0d1f"
+    url "https://github.com/reh3376/mdemg/releases/download/v0.2.14/mdemg_0.2.14_darwin_amd64.tar.gz"
+    sha256 "40bafcd9c20ac9ca43f3f72fe00b53e15069feca20d3096ce853ecab6315086e"
 
     define_method(:install) do
       bin.install "mdemg"
@@ -24,8 +24,8 @@ class Mdemg < Formula
     end
   end
   if Hardware::CPU.arm?
-    url "https://github.com/reh3376/mdemg/releases/download/v0.2.13/mdemg_0.2.13_darwin_arm64.tar.gz"
-    sha256 "75256a947e8147119be6ce0f812a15bba7e71e71b777d36d87fdbdfc08ace889"
+    url "https://github.com/reh3376/mdemg/releases/download/v0.2.14/mdemg_0.2.14_darwin_arm64.tar.gz"
+    sha256 "ab821e191d467789164a4e5377969a4f1ad9125c2f1541bf1f2c08dadcd513cc"
 
     define_method(:install) do
       bin.install "mdemg"
