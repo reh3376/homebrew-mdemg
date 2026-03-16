@@ -1256,7 +1256,7 @@ Export a MDEMG space to a `.mdemg` file. Supports selective export via profiles 
 |------|------|---------|-------------|
 | `--space-id` | string | `""` | Space ID to export (or set `MDEMG_SPACE_ID`) |
 | `--output` | string | `""` | Output `.mdemg` file path (default: `<space-id>.mdemg`) |
-| `--profile` | string | `"full"` | Export profile: `full`, `codebase`, `cms`, `learned`, `metadata` |
+| `--profile` | string | `"full"` | Export profile: `full`, `codebase`, `cms`, `learned`, `metadata`, `shareable` |
 | `--repo` | string | `""` | Git repo path; export fails unless repo is clean and up to date |
 | `--skip-git-check` | bool | `false` | Skip pre-export git check even when `--repo` is set |
 | `--chunk-size` | int | `500` | Nodes per chunk |
@@ -1268,6 +1268,10 @@ Export a MDEMG space to a `.mdemg` file. Supports selective export via profiles 
 | `--max-layer` | int | `0` | Maximum layer to export (0 = all) |
 | `--since-timestamp` | string | `""` | Export only entities updated after this (ISO8601) |
 | `--since-cursor` | string | `""` | Opaque cursor from prior export `next_cursor` |
+| `--obs-types` | string | `""` | Filter L0 nodes by obs_type (comma-separated) |
+| `--tags` | string | `""` | Filter nodes by tag presence (comma-separated, any match) |
+| `--exclude-volatile` | bool | `false` | Skip volatile/ungraduated observations (stability < 0.8) |
+| `--only-pinned` | bool | `false` | Only export pinned observations (L1+ always included) |
 
 **Usage Examples:**
 ```bash
@@ -1275,6 +1279,10 @@ mdemg space export --space-id codebase
 mdemg space export --space-id codebase --profile codebase --no-embeddings
 mdemg space export --space-id codebase --output backup.mdemg --chunk-size 1000
 mdemg space export --space-id codebase --since-timestamp 2025-01-01T00:00:00Z
+# Shareable knowledge export (domain knowledge only, no volatile/session data)
+mdemg space export --space-id mdemg-dev --profile shareable --output team-knowledge.mdemg
+# Further narrow shareable export with tags
+mdemg space export --space-id mdemg-dev --profile shareable --tags architecture,patterns
 ```
 
 **See Also:** `mdemg space import`, `mdemg space pull`
@@ -1291,11 +1299,16 @@ Import a MDEMG space from a `.mdemg` file into Neo4j.
 |------|------|---------|-------------|
 | `--input` | string | *required* | Input `.mdemg` file path |
 | `--conflict` | string | `"skip"` | On node collision: `skip`, `overwrite`, or `error` |
+| `--consolidate` | bool | `false` | Run hidden layer consolidation after import |
+| `--re-embed` | bool | `false` | Re-generate embeddings for imported nodes |
+| `--target-space` | string | `""` | Import into a different space_id (remaps all values) |
 
 **Usage Examples:**
 ```bash
 mdemg space import --input codebase.mdemg
 mdemg space import --input backup.mdemg --conflict overwrite
+# Import shared knowledge into a different space with re-embedding and consolidation
+mdemg space import --input team-knowledge.mdemg --target-space my-project --consolidate --re-embed
 ```
 
 **See Also:** `mdemg space export`

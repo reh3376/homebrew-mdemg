@@ -919,6 +919,45 @@ mdemg upgrade --dry-run
 
 ---
 
+### T5.8: Space Export/Import (API)
+
+```bash
+# Preview what would be exported
+curl -s "http://localhost:9999/v1/admin/spaces/export/preview?space_id=beta-test&profile=full"
+
+# Export the space
+curl -s -X POST http://localhost:9999/v1/admin/spaces/export \
+  -H "Content-Type: application/json" \
+  -d '{"space_id":"beta-test","profile":"metadata"}' > /tmp/beta-export.json
+
+# Verify export has chunks
+cat /tmp/beta-export.json | jq '.summary'
+
+# Import to a new space (empty chunks for validation)
+curl -s -X POST http://localhost:9999/v1/admin/spaces/import \
+  -H "Content-Type: application/json" \
+  -d '{"space_id":"beta-test-import","conflict":"skip","chunks":[]}'
+```
+
+**Expected:**
+- Preview returns `estimated_nodes`, `profile`, and `filters_applied`
+- Export returns JSON with `header.format: "mdemg-space-transfer"`, `chunks` array, and `summary`
+- Import returns `nodes_created: 0` (empty chunks), `warnings: []`
+
+```bash
+# CLI export/import (alternative)
+mdemg space export --space-id beta-test --output /tmp/beta-test.mdemg --profile metadata
+mdemg space import --input /tmp/beta-test.mdemg --target-space beta-test-cli-import
+```
+
+- [ ] **PASS** — API export preview returns valid JSON with estimated counts
+- [ ] **PASS** — API export returns chunks with `mdemg-space-transfer` format
+- [ ] **PASS** — API import accepts empty chunks and returns 200
+- [ ] **PASS** — CLI export creates `.mdemg` file
+- [ ] **PASS** — CLI import succeeds with target space
+
+---
+
 ## Cleanup / Teardown
 
 Run these steps to restore the machine to pre-test state:

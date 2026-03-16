@@ -28,14 +28,15 @@ Complete HTTP API reference for the Multi-Dimensional Emergent Memory Graph (MDE
 20. [Webhooks](#webhooks)
 21. [File Watcher API](#file-watcher-api)
 22. [Admin](#admin)
-23. [Self-Improvement (RSIC) API](#self-improvement-rsic-api)
-24. [Backup & Restore](#backup--restore)
-25. [Symbols & Relationships](#symbols--relationships)
-26. [Cleanup](#cleanup)
-27. [Edge Consistency](#edge-consistency)
-28. [Metrics & Monitoring](#metrics--monitoring)
-29. [Hash Verification (UNTS)](#hash-verification-unts)
-30. [Plugins & Modules](#plugins--modules)
+23. [Space Transfer (Export/Import)](#space-transfer-exportimport)
+24. [Self-Improvement (RSIC) API](#self-improvement-rsic-api)
+25. [Backup & Restore](#backup--restore)
+26. [Symbols & Relationships](#symbols--relationships)
+27. [Cleanup](#cleanup)
+28. [Edge Consistency](#edge-consistency)
+29. [Metrics & Monitoring](#metrics--monitoring)
+30. [Hash Verification (UNTS)](#hash-verification-unts)
+31. [Plugins & Modules](#plugins--modules)
 31. [System](#system)
 32. [MCP Server Tools](#mcp-server-tools)
 
@@ -2294,6 +2295,145 @@ Execute batch pruning of prunable spaces. Deletes all nodes, edges, TapRoots, an
 curl -s -X POST http://localhost:9999/v1/admin/spaces/prune \
   -H "Content-Type: application/json" \
   -d '{"dry_run":true}'
+```
+
+---
+
+## Space Transfer (Export/Import)
+
+HTTP API for exporting and importing space data. Supports profile-based filtering and conflict-aware import.
+
+### GET /v1/admin/spaces/export/preview
+
+Lightweight estimation of what an export would contain, without transferring data.
+
+**Query Parameters:**
+- `space_id` (required): Space to preview
+- `profile` (optional): Export profile — `full`, `metadata`, `shareable`, `codebase`, `cms`, `learned` (default: `full`)
+
+**Response (200):**
+```json
+{
+  "space_id": "my-project",
+  "profile": "shareable",
+  "estimated_nodes": 42,
+  "estimated_edges": 15,
+  "estimated_observations": 30,
+  "estimated_symbols": 0,
+  "filters_applied": {
+    "obs_types": ["learning", "decision", "correction", "technical_note", "insight", "preference"],
+    "exclude_volatile": true,
+    "only_pinned": false,
+    "min_layer": 0,
+    "max_layer": 0
+  }
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request` (missing space_id or invalid profile)
+
+```bash
+curl -s "http://localhost:9999/v1/admin/spaces/export/preview?space_id=my-project&profile=shareable"
+```
+
+---
+
+### POST /v1/admin/spaces/export
+
+Export space data with profile-based filtering and optional overrides.
+
+**Request Body:**
+```json
+{
+  "space_id": "my-project",
+  "profile": "shareable",
+  "obs_types": ["learning", "decision"],
+  "tags": ["important"],
+  "exclude_volatile": true,
+  "only_pinned": false,
+  "no_observations": false,
+  "no_symbols": false
+}
+```
+
+Only `space_id` is required. All other fields are optional and override profile defaults.
+
+**Response (200):**
+```json
+{
+  "space_id": "my-project",
+  "profile": "shareable",
+  "header": { "format": "mdemg-space-transfer", "version": "1.0.0" },
+  "chunks": [ ... ],
+  "summary": {
+    "nodes_exported": 42,
+    "edges_exported": 15,
+    "observations_exported": 30,
+    "symbols_exported": 0,
+    "duration_ms": 142
+  }
+}
+```
+
+The `chunks` array contains protobuf-JSON `SpaceChunk` objects — the same format as `.mdemg` files.
+
+**Status Codes:** `200 OK`, `400 Bad Request` (missing space_id or invalid profile)
+
+```bash
+curl -s -X POST http://localhost:9999/v1/admin/spaces/export \
+  -H "Content-Type: application/json" \
+  -d '{"space_id":"my-project","profile":"shareable"}'
+```
+
+---
+
+### POST /v1/admin/spaces/import
+
+Import space data from export chunks with conflict handling.
+
+**Request Body:**
+```json
+{
+  "space_id": "target-space",
+  "conflict": "skip",
+  "chunks": [ ... ]
+}
+```
+
+- `space_id` (optional): If provided, remaps all chunk space_ids to this target
+- `conflict` (optional): `skip` (default), `overwrite`, or `error`
+- `chunks` (required): Array of `SpaceChunk` objects from an export response
+
+**Response (200):**
+```json
+{
+  "space_id": "target-space",
+  "nodes_created": 42,
+  "nodes_skipped": 0,
+  "nodes_overwritten": 0,
+  "edges_created": 15,
+  "edges_skipped": 0,
+  "edges_merged": 0,
+  "observations_created": 30,
+  "symbols_created": 0,
+  "warnings": [],
+  "duration_ms": 87
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request` (missing/null chunks, invalid conflict mode)
+
+```bash
+# Export then import to a new space
+EXPORT=$(curl -s -X POST http://localhost:9999/v1/admin/spaces/export \
+  -H "Content-Type: application/json" \
+  -d '{"space_id":"source-space","profile":"full"}')
+
+CHUNKS=$(echo "$EXPORT" | jq '.chunks')
+
+curl -s -X POST http://localhost:9999/v1/admin/spaces/import \
+  -H "Content-Type: application/json" \
+  -d "{\"space_id\":\"target-space\",\"conflict\":\"skip\",\"chunks\":$CHUNKS}"
 ```
 
 ---
