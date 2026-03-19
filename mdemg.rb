@@ -5,34 +5,63 @@
 class Mdemg < Formula
   desc "Multi-Dimensional Emergent Memory Graph — cognitive substrate for AI agents"
   homepage "https://github.com/reh3376/mdemg"
-  version "0.2.14"
+  version "0.2.15"
 
   depends_on "docker" => :optional
 
-  if Hardware::CPU.intel?
-    url "https://github.com/reh3376/mdemg/releases/download/v0.2.14/mdemg_0.2.14_darwin_amd64.tar.gz"
-    sha256 "40bafcd9c20ac9ca43f3f72fe00b53e15069feca20d3096ce853ecab6315086e"
+  on_macos do
+    if Hardware::CPU.intel?
+      url "https://github.com/reh3376/mdemg/releases/download/v0.2.15/mdemg_0.2.15_darwin_amd64.tar.gz"
+      sha256 "ee9031d5685ac6b0bc00eb1258e7e5043500d3bbf61972acd0fa07fd11cfe8da"
 
-    define_method(:install) do
-      bin.install "mdemg"
-      man1.install Dir["man/man1/*.1"]
-      # UxTS plugin (default-enabled REASONING module)
-      plugdir = share/"mdemg/plugins/uxts-module"
-      plugdir.install "uxts-module"
-      plugdir.install "plugins/uxts-module/manifest.json"
+      define_method(:install) do
+        bin.install "mdemg"
+        man1.install Dir["man/man1/*.1"]
+        # UxTS plugin (default-enabled REASONING module)
+        plugdir = share/"mdemg/plugins/uxts-module"
+        plugdir.install "uxts-module"
+        plugdir.install "plugins/uxts-module/manifest.json"
+      end
+    end
+    if Hardware::CPU.arm?
+      url "https://github.com/reh3376/mdemg/releases/download/v0.2.15/mdemg_0.2.15_darwin_arm64.tar.gz"
+      sha256 "fd3e2511c34d645e3b1e6ab6907b358f9263240a86f9da01b23752dc881ab045"
+
+      define_method(:install) do
+        bin.install "mdemg"
+        man1.install Dir["man/man1/*.1"]
+        # UxTS plugin (default-enabled REASONING module)
+        plugdir = share/"mdemg/plugins/uxts-module"
+        plugdir.install "uxts-module"
+        plugdir.install "plugins/uxts-module/manifest.json"
+      end
     end
   end
-  if Hardware::CPU.arm?
-    url "https://github.com/reh3376/mdemg/releases/download/v0.2.14/mdemg_0.2.14_darwin_arm64.tar.gz"
-    sha256 "ab821e191d467789164a4e5377969a4f1ad9125c2f1541bf1f2c08dadcd513cc"
 
-    define_method(:install) do
-      bin.install "mdemg"
-      man1.install Dir["man/man1/*.1"]
-      # UxTS plugin (default-enabled REASONING module)
-      plugdir = share/"mdemg/plugins/uxts-module"
-      plugdir.install "uxts-module"
-      plugdir.install "plugins/uxts-module/manifest.json"
+  on_linux do
+    if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
+      url "https://github.com/reh3376/mdemg/releases/download/v0.2.15/mdemg_0.2.15_linux_amd64.tar.gz"
+      sha256 "8a213b84d8a9cd85700bb7453dbd5b1c57e7e6539569078b08a6b15c35592eec"
+      define_method(:install) do
+        bin.install "mdemg"
+        man1.install Dir["man/man1/*.1"]
+        # UxTS plugin (default-enabled REASONING module)
+        plugdir = share/"mdemg/plugins/uxts-module"
+        plugdir.install "uxts-module"
+        plugdir.install "plugins/uxts-module/manifest.json"
+      end
+    end
+    if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
+      url "https://github.com/reh3376/mdemg/releases/download/v0.2.15/mdemg_0.2.15_linux_arm64.tar.gz"
+      sha256 "750bda88fd42a49c32e6650db3a281a75d839d538ae6ac3b3c559690063f6908"
+      define_method(:install) do
+        bin.install "mdemg"
+        man1.install Dir["man/man1/*.1"]
+        # UxTS plugin (default-enabled REASONING module)
+        plugdir = share/"mdemg/plugins/uxts-module"
+        plugdir.install "uxts-module"
+        plugdir.install "plugins/uxts-module/manifest.json"
+      end
     end
   end
 
