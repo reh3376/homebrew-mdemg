@@ -721,7 +721,18 @@ curl -s -X POST http://localhost:9999/v1/self-improve/cycle \
     "edge_entropy": 0.45
   },
   "metrics_after": {
-    "overall_health": 0.78
+    "overall_health": 0.78,
+    "retrieval_quality": 0.75,
+    "memory_health": 1.0,
+    "edge_health": 0.82,
+    "orphan_ratio": 0.15,
+    "correction_rate": 0.04,
+    "edge_weight_entropy": 0.52
+  },
+  "criteria_met": true,
+  "criteria_detail": {
+    "orphan_ratio_delta": "met",
+    "overall_health_delta": "met"
   },
   "insights": [
     {

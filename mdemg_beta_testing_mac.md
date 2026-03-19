@@ -1,6 +1,6 @@
 # MDEMG macOS Beta Testing Guide
 
-**Version under test:** v0.2.11
+**Version under test:** v0.2.15
 **Date:** _______________
 **Tester:** _______________
 **Machine specs:** _______________
@@ -17,8 +17,8 @@
 | 2 | Ingestion | 8 | | | | |
 | 3 | CMS & RSIC | 10 | | | | |
 | 4 | Backup & Maintenance | 5 | | | | |
-| 5 | Advanced | 7 | | | | |
-| **Total** | | **39** | | | | |
+| 5 | Advanced | 9 | | | | |
+| **Total** | | **41** | | | | |
 
 ---
 
@@ -958,9 +958,54 @@ mdemg space import --input /tmp/beta-test.mdemg --target-space beta-test-cli-imp
 
 ---
 
+### T5.9: Teardown Dry Run
+
+```bash
+cd ~/mdemg-test
+mdemg teardown --dry-run
+```
+
+**Expected:** Lists all artifacts that would be removed (server, Docker container/volume, hooks, MCP configs, `.mdemg/` directory, sidebar registration) without making any changes.
+
+- [ ] **PASS** — dry run lists artifacts without making changes
+
+---
+
+### T5.10: Teardown Execute
+
+> **Warning:** This removes all MDEMG artifacts for the test project. Run this test LAST — it replaces the manual cleanup steps below.
+
+```bash
+cd ~/mdemg-test
+mdemg teardown --yes
+```
+
+**Expected:** Server stops, Docker container/volume removed, hooks uninstalled, MCP configs cleaned, `.mdemg/` backed up and removed, sidebar deregistered. Output shows each phase completing.
+
+```bash
+# Verify cleanup
+ls .mdemg 2>/dev/null && echo "FAIL: .mdemg still exists" || echo "OK: .mdemg removed"
+mdemg hooks list 2>/dev/null || echo "OK: hooks check (expected to fail — no .mdemg)"
+```
+
+- [ ] **PASS** — teardown completes, all artifacts removed, backup created
+
+---
+
 ## Cleanup / Teardown
 
-Run these steps to restore the machine to pre-test state:
+### Recommended: Use `mdemg teardown` (if T5.10 was not run)
+
+```bash
+cd ~/mdemg-test
+mdemg teardown --yes
+```
+
+This single command handles steps 1-6 below automatically: stops the server, removes Docker container/volume, uninstalls hooks, cleans MCP/IDE configs, backs up and removes `.mdemg/`, and deregisters from the menubar app.
+
+### Manual cleanup (fallback)
+
+If `mdemg teardown` is not available or failed:
 
 ```bash
 # 1. Stop the server
@@ -978,14 +1023,18 @@ mdemg db stop --remove
 # 4. Remove Docker volumes
 docker volume ls -q --filter name=mdemg | xargs docker volume rm
 
-# 5. Remove test project
-rm -rf ~/mdemg-test
-
-# 6. Remove MDEMG config (optional — only if uninstalling entirely)
+# 5. Remove MDEMG config (optional — only if uninstalling entirely)
 # rm -rf .mdemg
 
-# 7. Clean up test secret
+# 6. Clean up test secret
 mdemg config set-secret TEST_BETA_KEY ""
+```
+
+### Final cleanup (all methods)
+
+```bash
+# Remove test project
+rm -rf ~/mdemg-test
 ```
 
 ---

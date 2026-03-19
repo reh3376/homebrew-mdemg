@@ -1700,6 +1700,48 @@ curl -s -X POST http://localhost:9999/v1/jiminy/guide \
 | `JIMINY_ENABLED` | `false` | Enable/disable Jiminy guidance |
 | `JIMINY_MAX_ITEMS` | `10` | Default max guidance items per request |
 | `JIMINY_TIMEOUT_MS` | `6000` | Timeout for guidance generation (ms) |
+| `JIMINY_EFFECTIVENESS_ENABLED` | `true` | Enable guidance effectiveness tracking |
+| `JIMINY_EFFECTIVENESS_TTL_SEC` | `1800` | TTL for tracked guidance (seconds) |
+
+**Note:** The guide response now includes a `guidance_id` (UUID) in the `data` object for effectiveness tracking.
+
+### POST /v1/jiminy/feedback
+
+Record whether Jiminy guidance was followed, ignored, or contradicted. Requires a `guidance_id` from a prior `/v1/jiminy/guide` response.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `guidance_id` | string | Yes | The guidance_id from the guide response |
+| `action_summary` | string | No | Description of the action the agent took |
+| `space_id` | string | No | Memory space (for context) |
+
+```bash
+# Get guidance (note the guidance_id)
+GUID=$(curl -s -X POST http://localhost:9999/v1/jiminy/guide \
+  -H "Content-Type: application/json" \
+  -d '{"space_id":"my-project","context":"adding input validation"}' \
+  | jq -r '.data.guidance_id')
+
+# Send feedback after acting
+curl -s -X POST http://localhost:9999/v1/jiminy/feedback \
+  -H "Content-Type: application/json" \
+  -d "{\"guidance_id\":\"$GUID\",\"action_summary\":\"validated all inputs\",\"space_id\":\"my-project\"}" | jq .
+```
+
+**Response (200):**
+```json
+{
+  "data": {
+    "guidance_id": "...",
+    "applied": true,
+    "results": [{"type":"constraint","content":"...","outcome":"followed","similarity":0.42}]
+  }
+}
+```
+
+**Outcome values:** `followed`, `ignored`, `contradicted`, `unknown`
+
+**Status Codes:** `200 OK`, `400 Bad Request` (empty guidance_id), `503 Service Unavailable`
 
 ---
 
