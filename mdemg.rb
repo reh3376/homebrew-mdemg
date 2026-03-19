@@ -8,7 +8,6 @@ class Mdemg < Formula
   version "0.2.14"
 
   depends_on "docker" => :optional
-  depends_on :macos
 
   if Hardware::CPU.intel?
     url "https://github.com/reh3376/mdemg/releases/download/v0.2.14/mdemg_0.2.14_darwin_amd64.tar.gz"
