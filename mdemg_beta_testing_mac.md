@@ -958,7 +958,7 @@ mdemg space import --input /tmp/beta-test.mdemg --target-space beta-test-cli-imp
 
 ---
 
-### T5.9: Teardown Dry Run
+### T5.9: Teardown Dry Run (CLI)
 
 ```bash
 cd ~/mdemg-test
@@ -971,16 +971,17 @@ mdemg teardown --dry-run
 
 ---
 
-### T5.10: Teardown Execute
+### T5.10: Teardown via Guided Wizard (Menubar App)
 
 > **Warning:** This removes all MDEMG artifacts for the test project. Run this test LAST — it replaces the manual cleanup steps below.
 
-```bash
-cd ~/mdemg-test
-mdemg teardown --yes
-```
-
-**Expected:** Server stops, Docker container/volume removed, hooks uninstalled, MCP configs cleaned, `.mdemg/` backed up and removed, sidebar deregistered. Output shows each phase completing.
+1. Open the menubar app → Config tab → click **"Remove Instance..."**
+2. Verify wizard shows instance name, project path, and dry-run preview (Step 1: Confirm)
+3. Click **Continue** → verify export decision step (Step 2)
+4. Click **"Export First"** → verify export setup with profile picker and file save dialog (Step 3)
+5. Click **"Back"** → click **"Skip Export"** → verify teardown executes with spinner (Step 4)
+6. Verify result shows changes list and backup path (Step 5)
+7. Click **Done** → verify instance removed from list
 
 ```bash
 # Verify cleanup
@@ -988,7 +989,7 @@ ls .mdemg 2>/dev/null && echo "FAIL: .mdemg still exists" || echo "OK: .mdemg re
 mdemg hooks list 2>/dev/null || echo "OK: hooks check (expected to fail — no .mdemg)"
 ```
 
-- [ ] **PASS** — teardown completes, all artifacts removed, backup created
+- [ ] **PASS** — wizard completes all steps, teardown executes, all artifacts removed, backup created
 
 ---
 
