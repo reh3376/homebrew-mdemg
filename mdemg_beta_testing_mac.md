@@ -1,6 +1,6 @@
 # MDEMG macOS Beta Testing Guide
 
-**Version under test:** v0.2.15
+**Version under test:** v0.2.15 (CLI) / v1.7.0 (Menubar)
 **Date:** _______________
 **Tester:** _______________
 **Machine specs:** _______________
@@ -17,8 +17,9 @@
 | 2 | Ingestion | 8 | | | | |
 | 3 | CMS & RSIC | 10 | | | | |
 | 4 | Backup & Maintenance | 5 | | | | |
-| 5 | Advanced | 9 | | | | |
-| **Total** | | **41** | | | | |
+| 5 | Advanced | 10 | | | | |
+| M | Menubar App | 6 | | | | |
+| **Total** | | **48** | | | | |
 
 ---
 
@@ -973,7 +974,7 @@ mdemg teardown --dry-run
 
 ### T5.10: Teardown via Guided Wizard (Menubar App)
 
-> **Warning:** This removes all MDEMG artifacts for the test project. Run this test LAST — it replaces the manual cleanup steps below.
+> **Warning:** This removes all MDEMG artifacts for the test project. Run this test LAST (after Menubar tests) — it replaces the manual cleanup steps below.
 
 1. Open the menubar app → Config tab → click **"Remove Instance..."**
 2. Verify wizard shows instance name, project path, and dry-run preview (Step 1: Confirm)
@@ -993,9 +994,141 @@ mdemg hooks list 2>/dev/null || echo "OK: hooks check (expected to fail — no .
 
 ---
 
+## Tier M: Menubar App (~15 min)
+
+> **Requires:** The MDEMG server must be running (`mdemg status` shows healthy). Run these tests **before** T5.10 (teardown), which removes the instance the menubar monitors.
+
+### M.1: Install Menubar App
+
+```bash
+# Download the latest .app.zip
+curl -fsSL -o /tmp/MdemgMenuBar.app.zip \
+  "https://github.com/reh3376/mdemg-menubar/releases/latest/download/MdemgMenuBar.app.zip"
+
+# Extract
+cd /tmp && unzip -o MdemgMenuBar.app.zip
+
+# Move to Applications
+mv /tmp/MdemgMenuBar.app /Applications/
+
+# Remove quarantine attribute (required for unsigned apps)
+xattr -rd com.apple.quarantine /Applications/MdemgMenuBar.app
+
+# Launch
+open /Applications/MdemgMenuBar.app
+```
+
+> **macOS Security Warning:** On first launch, macOS may block the app with "MdemgMenuBar cannot be opened because it is from an unidentified developer." If this happens:
+> 1. Open **System Settings** → **Privacy & Security**
+> 2. Scroll down to the security section — you should see "MdemgMenuBar was blocked"
+> 3. Click **"Open Anyway"** → confirm the dialog
+> 4. The app should now launch and appear in the menu bar
+
+**Expected:** A small icon appears in the macOS menu bar (top-right area, near the clock).
+
+- [ ] **PASS** — menubar app installed and icon visible in menu bar
+- [ ] **Method used:** GitHub release download
+
+---
+
+### M.2: Menubar Connection
+
+Click the menubar icon to open the popover window.
+
+**Expected:** The popover opens showing:
+- Instance name in the header (e.g., "mdemg-test" or "MDEMG")
+- A **"Running"** status badge with a green dot (top-right of header)
+- A gear icon for Preferences (top-right)
+- 7 tabs: Status, Memory, Learning, Neo4j, Config, Logs, RSIC
+
+If the status badge shows **"Stopped"** (red dot), verify the server is running:
+
+```bash
+curl -s http://localhost:9999/healthz
+```
+
+- [ ] **PASS** — popover opens, shows "Running" badge, 7 tabs visible
+
+---
+
+### M.3: Browse All Tabs
+
+Click through each tab and verify it loads data (not just a blank view):
+
+| Tab | What to look for |
+|-----|-----------------|
+| **Status** | Server status (Running/Stopped), subsystem health indicators (embeddings, Neo4j, LLM), configured models, active services |
+| **Memory** | Total observation count, layer breakdown (L0-L5), memory health score, Knowledge Sharing section (Export/Import buttons with profile and space pickers) |
+| **Learning** | Hebbian edge count, learning phase (cold/learning/warm/saturated), Freeze/Unfreeze toggle, Prune button |
+| **Neo4j** | Database version, total node/relationship counts, connection pool stats, container status (Running/Stopped), lifecycle buttons (Start/Stop), resource usage |
+| **Config** | Server endpoint, space ID, PID file path, key-value config pairs, Backup section (trigger + list), Migrate button, **Instance Removal** section ("Remove Instance..." button) |
+| **Logs** | Recent server log lines, search/filter field, color-coded severity levels, refresh button |
+| **RSIC** | Engine status (idle/running), watchdog health, recent cycle history, calibration confidence scores |
+
+> **Tip:** Some tabs (Memory, Learning, RSIC) populate with more data after you've run ingestion and observation tests in Tiers 2-3. If a tab shows mostly zeros or "—", that's expected on a fresh install.
+
+- [ ] **PASS** — all 7 tabs load and display data (or reasonable empty state)
+
+---
+
+### M.4: Test Server Controls
+
+From the **Status** tab, test the server lifecycle controls:
+
+1. **Stop the server** using the Status tab's stop button
+2. Verify the status badge changes to **"Stopped"** with a red dot
+3. **Start the server** using the Status tab's start button
+4. Wait ~10 seconds for the health poll to update
+5. Verify the status badge changes back to **"Running"** with a green dot
+
+> **Note:** The menubar polls the server on a configurable interval (default: 10s for health, 30s for stats). After clicking Start, the badge may take up to 10 seconds to update. If the badge doesn't update, close and reopen the popover.
+
+**Fallback:** If the start button doesn't work, start the server from the terminal:
+
+```bash
+mdemg start --auto-migrate
+```
+
+- [ ] **PASS** — stop/start cycle works, status badge updates correctly
+
+---
+
+### M.5: Instance Manager
+
+1. Click the **gear icon** (top-right of header) → Preferences popover opens
+2. In the **Instances** section, click **"Manage Instances..."**
+3. Verify the **Instance Manager** sheet opens showing registered instances with status dots, directory paths, and server URLs
+4. Click the **"+"** button → **Add Instance** sheet opens
+5. Enter a test instance: Name = `test-instance`, Directory = `/tmp`, Space ID = `mdemg-dev`
+6. Click **Add** → verify the new instance appears in the list
+7. **Right-click** the test instance → verify context menu shows "Remove from List" and "Remove Instance..."
+8. Click **"Remove from List"** → verify the instance is removed (this only removes it from the menubar, it does NOT run teardown)
+
+- [ ] **PASS** — Instance Manager opens, add/select/remove-from-list works, context menu appears
+
+---
+
+### M.6: Auto-Update Check
+
+1. Click the **gear icon** → Preferences popover opens
+2. In the **General** section, note the current version number
+3. Click **"Check for Updates"**
+4. If an update is available: a blue banner appears at the top of Preferences showing the version transition (e.g., "v1.7.0 → v1.8.0") with an **"Update"** button, and a blue dot appears on the gear icon in the main header
+
+> **Important:** Do **NOT** click the "Update" button during testing — updating replaces the app version being tested, which would invalidate remaining test results. Just verify the update check mechanism works.
+
+**Expected (no update):** The "Check for Updates" button briefly shows a spinner, then returns to normal (no banner).
+
+**Expected (update available):** Blue update banner with version transition and "Update" button.
+
+- [ ] **PASS** — update check completes without error
+- [ ] **Update available?** Yes / No (note version if yes: _______________)
+
+---
+
 ## Cleanup / Teardown
 
-### Recommended: Use `mdemg teardown` (if T5.10 was not run)
+### Recommended: Use `mdemg teardown` (if T5.10 was not run via the Menubar wizard)
 
 ```bash
 cd ~/mdemg-test
