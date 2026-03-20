@@ -131,14 +131,14 @@ brew install ollama
 
 # Or download from: https://ollama.com/download/mac
 
-# Pull an embedding model
-ollama pull nomic-embed-text
+# Pull the recommended embedding model (3072 dims via MRL truncation)
+ollama pull qwen3-embedding:8b
 
 # Verify
 ollama list
 ```
 
-> **Dimension warning:** OpenAI `text-embedding-3-large` produces 3072-dimension embeddings. Many Ollama models produce fewer dimensions. Run `mdemg embeddings check` after setup to verify. If dimensions don't match the existing vector index, you may need to recreate it.
+> **Dimension note:** MDEMG requires 3072-dimension embeddings. OpenAI `text-embedding-3-large` produces 3072 natively. For Ollama, use `qwen3-embedding:8b` (4096 native, automatically truncated to 3072). Run `mdemg embeddings check` after setup to verify.
 
 - [ ] Ollama installed (or using OpenAI, or will skip embedding tests)
 
@@ -456,13 +456,13 @@ curl -s -X POST http://localhost:9999/v1/conversation/observe \
 ### T2.3: Batch Ingest (API)
 
 ```bash
-curl -s -X POST http://localhost:9999/v1/memory/ingest \
+curl -s -X POST http://localhost:9999/v1/memory/ingest/batch \
   -H "Content-Type: application/json" \
   -d '{
     "space_id": "beta-test",
-    "nodes": [
-      {"content": "macOS batch test item 1", "metadata": {"source": "beta-test"}},
-      {"content": "macOS batch test item 2", "metadata": {"source": "beta-test"}}
+    "observations": [
+      {"content": "macOS batch test item 1", "obs_type": "learning", "session_id": "beta-session"},
+      {"content": "macOS batch test item 2", "obs_type": "learning", "session_id": "beta-session"}
     ]
   }'
 ```
@@ -651,8 +651,8 @@ curl -s -X POST http://localhost:9999/v1/conversation/correct \
   -d '{
     "space_id": "beta-test",
     "session_id": "beta-session",
-    "content": "Correction: dependency xyz is actually version 2.0",
-    "obs_type": "correction"
+    "incorrect": "dependency xyz is version 1.0",
+    "correct": "dependency xyz is actually version 2.0"
   }'
 ```
 
@@ -737,7 +737,7 @@ curl -s -X POST http://localhost:9999/v1/learning/freeze \
   -d '{"space_id": "beta-test", "reason": "beta testing", "frozen_by": "tester"}'
 
 # Check status
-curl -s "http://localhost:9999/v1/learning/status?space_id=beta-test"
+curl -s "http://localhost:9999/v1/learning/freeze/status?space_id=beta-test"
 
 # Unfreeze
 curl -s -X POST http://localhost:9999/v1/learning/unfreeze \
@@ -758,7 +758,7 @@ curl -s -X POST http://localhost:9999/v1/learning/unfreeze \
 ```bash
 curl -s -X POST http://localhost:9999/v1/backup/trigger \
   -H "Content-Type: application/json" \
-  -d '{"space_id": "beta-test"}'
+  -d '{"type": "full", "space_ids": ["beta-test"]}'
 ```
 
 **Expected:** Returns backup job ID or confirmation.
@@ -845,7 +845,7 @@ curl -s -X POST http://localhost:9999/v1/memory/retrieve \
   -H "Content-Type: application/json" \
   -d '{
     "space_id": "beta-test",
-    "query": "beta testing",
+    "query_text": "beta testing",
     "top_k": 5
   }'
 ```
@@ -884,7 +884,7 @@ mdemg extract-symbols --path .
 ### T5.5: Consolidation (CLI)
 
 ```bash
-mdemg consolidate --space-id beta-test --dry-run
+mdemg consolidate --space-id beta-test --hidden-layer --dry-run
 ```
 
 **Expected:** Shows consolidation plan without executing.
