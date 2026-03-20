@@ -2278,11 +2278,60 @@ The following table lists all environment variables recognized by MDEMG, grouped
 |----------|------|---------|-------------|
 | `NEURAL_DATA_COLLECTION` | bool | `false` | Enable training data collection for neural re-ranker |
 | `NEURAL_DATA_DIR` | string | `.mdemg/neural/training-data` | Directory for training data JSONL files |
+| `NEURAL_MODEL_DIR` | string | `.mdemg/neural/models` | Directory for trained cross-encoder model checkpoints |
 | `NEURAL_RERANK_ENABLED` | bool | `false` | Enable neural re-rank provider |
 | `NEURAL_RERANK_URL` | string | `http://localhost:8100` | Python sidecar URL |
 | `NEURAL_RERANK_TIMEOUT_MS` | int | `1000` | Timeout for sidecar re-rank calls |
 | `NEURAL_RERANK_FALLBACK` | string | *(from `RERANK_PROVIDER`)* | Fallback re-rank provider if sidecar fails |
 | `SIDECAR_ENABLED` | bool | `false` | Master switch for Python sidecar integration |
+
+---
+
+## Neural Training Commands
+
+These Python CLI entrypoints are installed alongside the `mdemg` binary by the sidecar installer. They operate on training data collected by `NEURAL_DATA_COLLECTION` and manage cross-encoder model checkpoints in `NEURAL_MODEL_DIR`.
+
+### `mdemg-neural-train`
+
+Fine-tune a cross-encoder re-ranker model from collected JSONL training data.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--data-dir` | string | `.mdemg/neural/training-data` | Directory containing training JSONL files |
+| `--model-dir` | string | `.mdemg/neural/models` | Output directory for model checkpoints |
+| `--base-model` | string | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Pre-trained base model to fine-tune |
+| `--epochs` | int | `3` | Number of training epochs |
+| `--batch-size` | int | `16` | Training batch size |
+| `--val-split` | float | `0.1` | Fraction of data to use for validation |
+| `--min-samples` | int | `100` | Minimum number of training samples required |
+| `--from-checkpoint` | string | `""` | Resume training from an existing checkpoint path |
+
+**Usage Examples:**
+```bash
+mdemg-neural-train                              # Train with defaults
+mdemg-neural-train --epochs 5 --batch-size 32   # Custom training params
+mdemg-neural-train --from-checkpoint .mdemg/neural/models/2026-03-19T10-00-00
+```
+
+---
+
+### `mdemg-neural-evaluate`
+
+Offline evaluation comparing neural cross-encoder scores against baseline LLM re-rank scores.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--model-path` | string | *(required)* | Path to trained model checkpoint directory |
+| `--test-data` | string | `.mdemg/neural/training-data` | Directory containing test JSONL files |
+| `--base-model` | string | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Base model for comparison baseline |
+| `--top-k` | int | `10` | Number of top results to evaluate per query |
+| `--output` | string | `""` | Write evaluation report to file (stdout if empty) |
+
+**Usage Examples:**
+```bash
+mdemg-neural-evaluate --model-path .mdemg/neural/models/2026-03-19T10-00-00
+mdemg-neural-evaluate --model-path ./model --top-k 5 --output eval-report.json
+```
 
 ---
 
