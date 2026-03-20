@@ -2181,6 +2181,109 @@ The following table lists all environment variables recognized by MDEMG, grouped
 | `PORT_RANGE_END` | `PORT_RANGE_START + 100` | End of fallback port range |
 | `PORT_FILE_PATH` | `.mdemg.port` | Port file for client discovery |
 
+### FSD-2026-001: Constraint Enforcement (F1)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `GUARDRAIL_HOOK_ENABLED` | bool | `false` | Enable PreToolUse constraint enforcement hook |
+| `GUARDRAIL_HOOK_TIMEOUT_MS` | int | `3000` | Timeout for hook enforcement calls |
+
+### FSD-2026-001: Feedback Persistence (F3)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `JIMINY_PERSISTENCE_ENABLED` | bool | `false` | Persist guidance outcomes to Neo4j |
+| `CONSTRAINT_CONFIDENCE_DECAY_PER_NEGATIVE` | float64 | `0.03` | Confidence decrease per ignored/contradicted outcome |
+| `CONSTRAINT_CONFIDENCE_BOOST_PER_POSITIVE` | float64 | `0.02` | Confidence increase per followed outcome |
+| `CONSTRAINT_ARCHIVE_THRESHOLD` | float64 | `0.3` | Archive constraints below this confidence |
+
+### FSD-2026-001: Contradiction Detection (F2)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CONTRADICTION_ENABLED` | bool | `true` | Enable contradiction detection in observations |
+| `CONTRADICTION_SIM_THRESHOLD` | float64 | `0.75` | Minimum similarity for contradiction candidates |
+| `CONTRADICTION_MAX_CANDIDATES` | int | `20` | Max candidates for contradiction check |
+| `CONTRADICTION_NLI_ENABLED` | bool | `false` | Use NLI sidecar for contradiction detection |
+
+### FSD-2026-001: Constraint Classification (F6)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CONSTRAINT_CLASSIFIER_GATE_ENABLED` | bool | `false` | LLM gate to confirm regex constraint detections |
+| `CONSTRAINT_NLI_ENABLED` | bool | `false` | Use NLI sidecar for constraint classification |
+
+### FSD-2026-001: Scope Filtering (F7)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CONSTRAINT_SCOPE_FILTERING_ENABLED` | bool | `false` | Filter constraints by file path scope |
+
+### FSD-2026-001: Conflict Detection (F4)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CONSTRAINT_CONFLICT_DETECTION_ENABLED` | bool | `false` | Enable pairwise constraint conflict detection |
+| `CONSTRAINT_CONFLICT_SIM_THRESHOLD` | float64 | `0.6` | Similarity threshold for conflict detection |
+| `CONSTRAINT_CONFLICT_MAX_PAIRS` | int | `500` | Max constraint pairs to evaluate |
+
+### FSD-2026-001: Asymmetric Learning & Determinism (F9)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `LEARNING_ASYMMETRIC_ENABLED` | bool | `false` | Enable directional co-activation edges |
+| `DETERMINISM_SCORING_ENABLED` | bool | `false` | Enable determinism score computation |
+
+### FSD-2026-001: Jiminy Cache (F10)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `JIMINY_CACHE_ENABLED` | bool | `true` | Enable guidance response cache |
+| `JIMINY_CACHE_TTL_SEC` | int | `300` | Cache TTL in seconds |
+| `JIMINY_CACHE_SIZE` | int | `200` | Max cache entries (LRU eviction) |
+| `JIMINY_PARTIAL_TIMEOUT_MS` | int | `2000` | Timeout for partial guidance results |
+
+### FSD-2026-001: Activation Weights (F11)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ACTIVATION_DIM_SEMANTIC_WEIGHT` | float64 | `0.6` | Semantic dimension weight in activation spreading |
+| `ACTIVATION_DIM_TEMPORAL_WEIGHT` | float64 | `0.2` | Temporal dimension weight |
+| `ACTIVATION_DIM_COACTIVATION_WEIGHT` | float64 | `0.2` | Co-activation dimension weight |
+
+### FSD-2026-001: Constraint Decay (F13)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CONSTRAINT_DECAY_ENABLED` | bool | `false` | Enable automatic constraint confidence decay |
+| `CONSTRAINT_DECAY_RATE_PER_WEEK` | float64 | `0.01` | Weekly decay rate for unsurfaced constraints |
+
+### FSD-2026-001: Authority Levels (F20)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `CONSTRAINT_AUTHORITY_ENABLED` | bool | `false` | Enable authority-based constraint filtering |
+| `CONSTRAINT_DEFAULT_AUTHORITY` | string | `team_standard` | Default authority level for new constraints |
+
+### FSD-2026-001: Operational (F15–F18)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `MAX_HOP_DEPTH` | int | `3` | Maximum graph expansion hops in retrieval |
+| `LEARNING_AUTO_PRUNE_EXCESS_ENABLED` | bool | `false` | Auto-prune excess edges during consolidation |
+
+### FSD-2026-001: Neural Re-Ranker (NR)
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `NEURAL_DATA_COLLECTION` | bool | `false` | Enable training data collection for neural re-ranker |
+| `NEURAL_DATA_DIR` | string | `.mdemg/neural/training-data` | Directory for training data JSONL files |
+| `NEURAL_RERANK_ENABLED` | bool | `false` | Enable neural re-rank provider |
+| `NEURAL_RERANK_URL` | string | `http://localhost:8100` | Python sidecar URL |
+| `NEURAL_RERANK_TIMEOUT_MS` | int | `1000` | Timeout for sidecar re-rank calls |
+| `NEURAL_RERANK_FALLBACK` | string | *(from `RERANK_PROVIDER`)* | Fallback re-rank provider if sidecar fails |
+| `SIDECAR_ENABLED` | bool | `false` | Master switch for Python sidecar integration |
+
 ---
 
 ## Command Tree Summary

@@ -39,6 +39,12 @@ Complete HTTP API reference for the Multi-Dimensional Emergent Memory Graph (MDE
 31. [Plugins & Modules](#plugins--modules)
 31. [System](#system)
 32. [MCP Server Tools](#mcp-server-tools)
+33. [Constraint Effectiveness](#constraint-effectiveness)
+34. [Constraint Conflicts](#constraint-conflicts)
+35. [Constraint Scope](#constraint-scope)
+36. [Determinism Metrics](#determinism-metrics)
+37. [Neural Sidecar](#neural-sidecar)
+38. [Guardrail Events](#guardrail-events)
 
 ---
 
@@ -935,6 +941,173 @@ curl -s "http://localhost:9999/v1/constraints/stats?space_id=demo"
 
 ---
 
+## Constraint Effectiveness
+
+### GET /v1/constraints/effectiveness?space_id=X
+
+Per-constraint effectiveness metrics (follow/ignore/contradict rates, confidence trends).
+
+Requires `JIMINY_PERSISTENCE_ENABLED=true`.
+
+**Query Parameters:**
+- `space_id` (required)
+
+**Response (200):**
+```json
+{
+  "space_id": "my-project",
+  "constraints": [
+    {
+      "node_id": "const-abc",
+      "total_surfaced": 25,
+      "total_followed": 20,
+      "total_ignored": 3,
+      "total_contradicted": 2,
+      "effectiveness_score": 0.80,
+      "confidence": 0.88
+    }
+  ]
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request`, `503 Service Unavailable`
+
+```bash
+curl -s "http://localhost:9999/v1/constraints/effectiveness?space_id=demo"
+```
+
+---
+
+## Constraint Conflicts
+
+### POST /v1/constraints/detect-conflicts
+
+Trigger pairwise conflict scan across constraints in a space. Finds constraints with opposing types (`must` vs `must_not`) and high embedding similarity.
+
+Requires `CONSTRAINT_CONFLICT_DETECTION_ENABLED=true`.
+
+**Request Body:**
+```json
+{
+  "space_id": "my-project"
+}
+```
+
+**Response (200):**
+```json
+{
+  "space_id": "my-project",
+  "conflicts_found": 2,
+  "new_conflicts": 1
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request`, `503 Service Unavailable`
+
+```bash
+curl -s -X POST http://localhost:9999/v1/constraints/detect-conflicts \
+  -H "Content-Type: application/json" \
+  -d '{"space_id":"demo"}'
+```
+
+---
+
+### GET /v1/constraints/conflicts?space_id=X
+
+List unresolved constraint conflicts for a space.
+
+**Query Parameters:**
+- `space_id` (required)
+
+**Response (200):**
+```json
+{
+  "space_id": "my-project",
+  "conflicts": [
+    {
+      "source_id": "const-abc",
+      "target_id": "const-def",
+      "similarity_score": 0.85,
+      "detection_method": "embedding_similarity",
+      "resolution_status": "unresolved",
+      "detected_at": "2026-03-19T10:00:00Z"
+    }
+  ]
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request`
+
+```bash
+curl -s "http://localhost:9999/v1/constraints/conflicts?space_id=demo"
+```
+
+---
+
+### PATCH /v1/constraints/conflicts/{id}/resolve
+
+Resolve a constraint conflict with precedence.
+
+**Request Body:**
+```json
+{
+  "space_id": "my-project",
+  "resolution_text": "JWT constraint takes precedence over optional auth"
+}
+```
+
+**Response (200):**
+```json
+{
+  "resolved": true
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request`
+
+```bash
+curl -s -X PATCH http://localhost:9999/v1/constraints/conflicts/conflict-abc/resolve \
+  -H "Content-Type: application/json" \
+  -d '{"space_id":"demo","resolution_text":"JWT constraint takes precedence over optional auth"}'
+```
+
+---
+
+## Constraint Scope
+
+### PATCH /v1/constraints/scope/{node_id}
+
+Manually override the scope of a constraint (file path glob pattern limiting where it applies).
+
+Requires `CONSTRAINT_SCOPE_FILTERING_ENABLED=true`.
+
+**Request Body:**
+```json
+{
+  "space_id": "my-project",
+  "scope": "internal/api/**"
+}
+```
+
+**Response (200):**
+```json
+{
+  "updated": true,
+  "node_id": "const-abc",
+  "scope": "internal/api/**"
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request`, `503 Service Unavailable`
+
+```bash
+curl -s -X PATCH http://localhost:9999/v1/constraints/scope/const-abc \
+  -H "Content-Type: application/json" \
+  -d '{"space_id":"demo","scope":"internal/api/**"}'
+```
+
+---
+
 ## Skills Registry
 
 Skills are stored as pinned CMS observations with `skill:<name>` tags.
@@ -1572,7 +1745,8 @@ Validate code changes against learned constraints. Used in git pre-commit hooks.
 {
   "space_id": "my-project",
   "files_changed": ["src/auth.go", "src/config.go"],  // required
-  "diff": "diff --git a/src/auth.go..."                // required: git diff output
+  "diff": "diff --git a/src/auth.go...",               // required: git diff output
+  "agent_trust_level": "standard"                      // optional: "restricted", "standard", "elevated"
 }
 ```
 
@@ -1599,6 +1773,32 @@ Validate code changes against learned constraints. Used in git pre-commit hooks.
 curl -s -X POST http://localhost:9999/v1/memory/guardrail/validate \
   -H "Content-Type: application/json" \
   -d '{"space_id":"demo","files_changed":["src/main.go"],"diff":"..."}'
+```
+
+---
+
+## Guardrail Events
+
+### GET /v1/guardrail/events?space_id=X
+
+Query the guardrail enforcement event log (recent validate calls and their outcomes).
+
+**Query Parameters:**
+- `space_id` (required)
+- `limit` (optional, default 50)
+
+**Response (200):**
+```json
+{
+  "space_id": "my-project",
+  "events": []
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request`
+
+```bash
+curl -s "http://localhost:9999/v1/guardrail/events?space_id=demo"
 ```
 
 ---
@@ -3067,6 +3267,65 @@ APE (Automatic Processing Engine) scheduler status.
 ### POST /v1/ape/trigger
 
 Manually trigger an APE processing cycle.
+
+---
+
+## Determinism Metrics
+
+### GET /v1/metrics/determinism?space_id=X
+
+Compute a determinism score measuring how consistently the system influences agent behavior.
+
+D = (informed_actions / total_actions) × compliance_rate × coverage_ratio
+
+Requires `DETERMINISM_SCORING_ENABLED=true`.
+
+**Query Parameters:**
+- `space_id` (required)
+
+**Response (200):**
+```json
+{
+  "space_id": "my-project",
+  "score": 0.72,
+  "informed_actions": 180,
+  "total_actions": 250,
+  "compliance_rate": 0.88,
+  "coverage_ratio": 0.90
+}
+```
+
+**Status Codes:** `200 OK`, `400 Bad Request`, `503 Service Unavailable`
+
+```bash
+curl -s "http://localhost:9999/v1/metrics/determinism?space_id=demo"
+```
+
+---
+
+## Neural Sidecar
+
+Optional Python FastAPI sidecar providing cross-encoder re-ranking and NLI classification. Runs on port 8100 by default.
+
+### GET /v1/neural/status
+
+Status of the neural sidecar integration from the Go server's perspective.
+
+**Response (200):**
+```json
+{
+  "sidecar_enabled": false,
+  "neural_rerank_enabled": false,
+  "data_collection_enabled": false,
+  "rerank_url": "http://localhost:8100"
+}
+```
+
+**Status Codes:** `200 OK`
+
+```bash
+curl -s http://localhost:9999/v1/neural/status
+```
 
 ---
 
