@@ -5,14 +5,14 @@
 class Mdemg < Formula
   desc "Multi-Dimensional Emergent Memory Graph — cognitive substrate for AI agents"
   homepage "https://github.com/reh3376/mdemg"
-  version "0.3.2"
+  version "0.3.3"
 
   depends_on "docker" => :optional
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.3.2/mdemg_0.3.2_darwin_amd64.tar.gz"
-      sha256 "86d2f055eca76ad98282a8c8842b939787cad704d73ff8ce1f593d9b4da64517"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.3.3/mdemg_0.3.3_darwin_amd64.tar.gz"
+      sha256 "03d9663c289c009813bd08979800c39c91fdf0af8ac59c3d3f3142a0bc5bed08"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -24,8 +24,8 @@ class Mdemg < Formula
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.3.2/mdemg_0.3.2_darwin_arm64.tar.gz"
-      sha256 "b0f723326b2112f57a60a3d6d5f4dd3af3868da0af22c6f705f2b4126647fc6e"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.3.3/mdemg_0.3.3_darwin_arm64.tar.gz"
+      sha256 "5c3e021af9c44c06a646f72ba19193a459cd9d54eedd4f4a681aef158d8f2934"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -40,8 +40,8 @@ class Mdemg < Formula
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.3.2/mdemg_0.3.2_linux_amd64.tar.gz"
-      sha256 "f5a88463a6a34aec63bce6749cd6263411a41e06a99bf3ab544772dd07629261"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.3.3/mdemg_0.3.3_linux_amd64.tar.gz"
+      sha256 "0909ffe136ceb605a33b2319347acc5602dc72182044e55852218f95afeb880e"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -52,8 +52,8 @@ class Mdemg < Formula
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.3.2/mdemg_0.3.2_linux_arm64.tar.gz"
-      sha256 "69136b1b1348867c5ea19fb95ffdf81ebb34cae0dbb68463a4dbac2a2c296924"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.3.3/mdemg_0.3.3_linux_arm64.tar.gz"
+      sha256 "461b68fdbbdc5f985b0c7f0dfdb6a0b76e63aa1080b7fe110bfc3469402771b5"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -63,6 +63,14 @@ class Mdemg < Formula
         plugdir.install "plugins/uxts-module/manifest.json"
       end
     end
+  end
+
+  def caveats
+    <<~EOS
+      Jiminy inner-voice guidance is configured during 'mdemg init'.
+      Default model: gpt-5.4-nano (OpenAI) or qwen3:8b (Ollama).
+      Run 'mdemg init' in your project directory to get started.
+    EOS
   end
 
   test do
