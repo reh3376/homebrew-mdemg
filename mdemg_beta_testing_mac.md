@@ -14,12 +14,12 @@
 | Tier | Section | Tests | Pass | Fail | Skip | Notes |
 |------|---------|-------|------|------|------|-------|
 | 1 | Installation & Core | 9 | | | | |
-| 2 | Ingestion | 8 | | | | |
+| 2 | Ingestion | 9 | | | | |
 | 3 | CMS & RSIC | 10 | | | | |
 | 4 | Backup & Maintenance | 5 | | | | |
 | 5 | Advanced | 10 | | | | |
 | M | Menubar App | 6 | | | | |
-| **Total** | | **48** | | | | |
+| **Total** | | **49** | | | | |
 
 ---
 
@@ -567,6 +567,34 @@ curl -s http://localhost:9999/v1/linear/issues?space_id=beta-test
 
 - [ ] **PASS** — Linear endpoint responds
 - [ ] **SKIP** — no LINEAR_API_KEY configured
+
+---
+
+### T2.9: Speed Presets
+
+**T2.9.1: Fast Preset Dry-Run**
+```bash
+mdemg ingest --path . --speed fast --dry-run
+```
+Expected: Workers=8, batch=250, LLM summaries disabled, symbol extraction disabled.
+
+**T2.9.2: Thorough Preset Dry-Run**
+```bash
+mdemg ingest --path . --speed thorough --dry-run
+```
+Expected: Workers=8, batch=200, LLM summaries enabled, batch=20, symbols enabled.
+
+**T2.9.3: Flag Override**
+```bash
+mdemg ingest --path . --speed fast --llm-summary=true --dry-run
+```
+Expected: Fast settings BUT LLM summaries still enabled (flag override takes precedence).
+
+**T2.9.4: Combined Presets**
+```bash
+mdemg ingest --path . --speed fast --preset ml_cuda --dry-run
+```
+Expected: Speed preset (workers, batch, LLM) + exclusion preset (ml_cuda dirs/patterns) both applied.
 
 ---
 
