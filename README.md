@@ -80,17 +80,17 @@ An embedding provider powers semantic search, recall, consolidation naming, and 
    ```bash
    brew install ollama
    ```
-2. Pull an embedding model:
+2. Pull a compatible embedding model (~4.9 GB):
    ```bash
-   ollama pull nomic-embed-text
+   ollama pull qwen3-embedding:8b
    ```
 3. Verify it's running:
    ```bash
    ollama list
-   # Should show nomic-embed-text in the list
+   # Should show qwen3-embedding:8b in the list
    ```
 
-> **Dimension warning:** OpenAI `text-embedding-3-large` produces 3072-dimension embeddings. Many Ollama models produce fewer dimensions. Run `mdemg embeddings check` after setup to verify. If dimensions don't match the existing vector index, you may need to recreate it.
+> **Dimension note:** MDEMG requires 3072-dimension embeddings. `qwen3-embedding:8b` produces 4096 dimensions which are automatically truncated to 3072 via MRL. Models with fewer than 3072 native dimensions (e.g., `nomic-embed-text` at 768, `mxbai-embed-large` at 1024) are **incompatible** and will cause vector operations to fail. Run `mdemg embeddings check` after setup to verify.
 
 **Option C — Skip (degraded mode):**
 You can run MDEMG without an embedding provider. Ingestion, observation storage, consolidation structure, and most API endpoints will work. Semantic recall and LLM-powered naming will be unavailable or return empty results.
