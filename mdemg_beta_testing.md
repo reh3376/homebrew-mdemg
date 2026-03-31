@@ -1,10 +1,10 @@
-# MDEMG macOS Beta Testing Guide
+# MDEMG Beta Testing Guide
 
 **Version under test:** v0.4.0 (CLI)
 **Date:** _______________
 **Tester:** _______________
 **Machine specs:** _______________
-**macOS version:** _______________
+**OS / version:** _______________
 **Docker Desktop version:** _______________
 
 ---
@@ -28,34 +28,46 @@
 
 Complete each section below in order before starting the tests. Do not assume anything is pre-installed — verify each item.
 
-### Step 1: Verify macOS Version
+### Step 1: Verify OS Version
 
-MDEMG requires macOS 12 (Monterey) or later on Apple Silicon (M1+) or Intel.
+**Supported platforms:**
+- **macOS:** 12 (Monterey) or later, Apple Silicon (M1+) only
+- **Linux:** x86_64 or arm64 (Ubuntu 20.04+, Debian 11+, Fedora 36+, or equivalent)
+- **Windows:** WSL2 required (Windows 10 build 19041+ or Windows 11)
 
 ```bash
-# Check your macOS version
+# macOS
 sw_vers
-# ProductVersion must be 12.0 or higher
+
+# Linux
+cat /etc/os-release && uname -m
+
+# Windows (inside WSL2)
+wsl --version && cat /etc/os-release
 ```
 
-- [ ] macOS version verified: _______________
+- [ ] OS version verified: _______________
 
-### Step 2: Install Homebrew
+### Step 2: Install MDEMG
 
-Homebrew is the package manager used to install MDEMG.
+**macOS (Homebrew):**
 
 ```bash
-# Check if Homebrew is installed
-brew --version
+# Install Homebrew if not already installed
+brew --version || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# If "command not found", install Homebrew:
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# After install, follow on-screen instructions to add brew to PATH, then verify:
-brew --version
+# Install MDEMG
+brew tap reh3376/mdemg
+brew install mdemg
 ```
 
-- [ ] Homebrew installed, version: _______________
+**Linux / Windows (WSL2) — Install Script:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/reh3376/mdemg/main/scripts/install.sh | bash
+```
+
+- [ ] MDEMG installed, method: _______________
 
 ### Step 3: Install Docker Desktop
 
@@ -145,7 +157,7 @@ ollama list
 
 #### Git (Tier 2: hooks, incremental ingest, test project setup)
 
-Required for git hooks, incremental ingest (`--since`), and setting up the test project. Most macOS systems have Git pre-installed via Xcode Command Line Tools.
+Required for git hooks, incremental ingest (`--since`), and setting up the test project. macOS has Git via Xcode Command Line Tools; most Linux distros include it; WSL2 installs include it by default.
 
 ```bash
 # Check if Git is already installed
@@ -207,8 +219,8 @@ EOF
 
 | # | Requirement | Status | Comments |
 |---|-------------|--------|----------|
-| 1 | macOS 12 (Monterey) or later | | Required for Docker Desktop. Verify: `sw_vers` → ProductVersion ≥ 12.0 |
-| 2 | Homebrew installed | | Package manager for MDEMG install. Verify: `brew --version` returns a version |
+| 1 | Supported OS (macOS 12+/Linux/WSL2) | | macOS: Apple Silicon only. Linux: x86_64/arm64. Windows: WSL2. |
+| 2 | MDEMG installed | | macOS: `brew install mdemg`. Linux/WSL2: install script. Verify: `mdemg version` |
 | 3 | Docker Desktop installed and running | | Neo4j runs as a Docker container. Verify: `docker info` succeeds without errors |
 | 4 | Internet access confirmed | | Needed to download Homebrew formula and Docker images. Verify: `curl -s https://github.com` returns HTML |
 | — | *OpenAI API key (optional)* | | Enables LLM summaries, recall re-ranking, consolidation naming. Without it, those features return degraded results. Verify: `echo $OPENAI_API_KEY` is set |
@@ -465,7 +477,7 @@ curl -s -X POST http://localhost:9999/v1/conversation/observe \
   -d '{
     "space_id": "beta-test",
     "session_id": "beta-session",
-    "content": "This is a test observation from macOS beta testing",
+    "content": "This is a test observation from beta testing",
     "obs_type": "learning"
   }'
 ```
@@ -484,8 +496,8 @@ curl -s -X POST http://localhost:9999/v1/memory/ingest/batch \
   -d '{
     "space_id": "beta-test",
     "observations": [
-      {"content": "macOS batch test item 1", "obs_type": "learning", "session_id": "beta-session"},
-      {"content": "macOS batch test item 2", "obs_type": "learning", "session_id": "beta-session"}
+      {"content": "batch test item 1", "obs_type": "learning", "session_id": "beta-session"},
+      {"content": "batch test item 2", "obs_type": "learning", "session_id": "beta-session"}
     ]
   }'
 ```
@@ -649,7 +661,7 @@ curl -s -X POST http://localhost:9999/v1/conversation/observe \
   -d '{
     "space_id": "beta-test",
     "session_id": "beta-session",
-    "content": "Decided to use Homebrew for all macOS installations",
+    "content": "Decided to use Docker Compose as primary deployment method",
     "obs_type": "decision"
   }'
 
@@ -885,7 +897,7 @@ mdemg space list
 
 > **Reference:** [CLI Reference](docs/cli-reference.md) has full flag details for every command. [API Reference](docs/api-reference.md#mcp-server-tools) covers MCP server tools.
 
-### T5.1: Secrets (macOS Keychain)
+### T5.1: Secrets (System Keychain)
 
 ```bash
 # Store a test secret
@@ -898,9 +910,9 @@ mdemg config get-secret TEST_BETA_KEY
 mdemg config list-secrets
 ```
 
-**Expected:** Secret is stored in the macOS system keychain (via Keychain Access.app), retrieved correctly, and listed.
+**Expected:** Secret is stored in the system keychain (macOS Keychain Access / Linux keyring), retrieved correctly, and listed.
 
-- [ ] **PASS** — set/get/list secrets works via macOS keychain
+- [ ] **PASS** — set/get/list secrets works via system keychain
 
 ---
 
@@ -1360,7 +1372,7 @@ rm -rf ~/mdemg-test
 
 ---
 
-## Known macOS Limitations
+## Known Platform Limitations
 
 > **See also:** [README — Troubleshooting](README.md#troubleshooting) for common issues and fixes.
 
@@ -1368,7 +1380,7 @@ rm -rf ~/mdemg-test
 
 > **Note:** Docker Compose is the primary deployment method as of v0.3.0. Daemon mode (`mdemg start/stop/restart`) is for native development only. Most users should use `docker compose up -d` instead.
 
-**Issue:** Daemon mode uses Unix process management (PID files, signal handling). It works natively on macOS but may occasionally fail if the PID file becomes stale (e.g., after a system crash).
+**Issue:** Daemon mode uses Unix process management (PID files, signal handling). It works natively on macOS/Linux but may occasionally fail if the PID file becomes stale (e.g., after a system crash).
 
 **Workaround:** If `mdemg start` reports the server is already running but `mdemg status` shows it's not responding:
 
@@ -1418,14 +1430,21 @@ launchctl load ~/Library/LaunchAgents/com.mdemg.server.plist
 
 **Workaround:** Docker Desktop menu bar icon > Settings > Resources: set Memory to at least **4 GB** and CPUs to at least **2**.
 
-### 3. Apple Silicon vs Intel
+### 3. Architecture Verification
 
-**Issue:** The Homebrew formula installs the correct architecture automatically (`darwin/arm64` for Apple Silicon, `darwin/amd64` for Intel). Verify with `mdemg version` — the `os/arch` line should match your hardware.
+**Issue:** MDEMG ships platform-specific binaries. Homebrew (macOS) and the install script (Linux/WSL2) select the correct architecture automatically. Verify with `mdemg version` — the `os/arch` line should match your hardware.
+
+**Supported:** `darwin/arm64` (macOS Apple Silicon), `linux/amd64`, `linux/arm64`.
 
 **Workaround:** If the wrong architecture was installed:
 
 ```bash
+# macOS
 brew reinstall mdemg
+
+# Linux/WSL2
+curl -fsSL https://raw.githubusercontent.com/reh3376/mdemg/main/scripts/install.sh | bash
+
 mdemg version   # Verify os/arch
 ```
 
@@ -1438,7 +1457,7 @@ The following features return degraded or empty results without an OpenAI or Oll
 - `SME consult` — consulting service unavailable
 - `meta-learn` — cross-space generalization unavailable
 
-**Workaround:** Set an OpenAI key in `.env` or via the macOS keychain:
+**Workaround:** Set an OpenAI key in `.env` or via the system keychain (macOS) / config:
 
 ```bash
 mdemg config set-secret OPENAI_API_KEY sk-...
@@ -1497,20 +1516,20 @@ docker compose up -d
 
 File issues at: **https://github.com/reh3376/mdemg/issues**
 
-**Title format:** `[macOS Beta] <brief description>`
+**Title format:** `[Beta] <brief description>`
 
-**Labels:** Add `macos` and `beta-testing`
+**Labels:** Add `beta-testing` and your platform (`macos`, `linux`, or `windows-wsl2`)
 
 ### Include in Every Report
 
 ```
 **Environment:**
-- macOS version: (output of `sw_vers`)
+- OS: (macOS: `sw_vers` / Linux: `cat /etc/os-release` / WSL2: `wsl --version`)
 - Architecture: (output of `uname -m` — arm64 or x86_64)
 - MDEMG version: (output of `mdemg version`)
 - Docker Desktop version: (output of `docker --version`)
 - Shell: (output of `echo $SHELL`)
-- Installation method: Homebrew
+- Installation method: Homebrew / install script
 
 **Steps to Reproduce:**
 1. <exact command>
@@ -1541,4 +1560,4 @@ File issues at: **https://github.com/reh3376/mdemg/issues**
 
 After completing all tiers, fill in the Results Summary table at the top of this document and submit it along with any issues filed.
 
-Thank you for beta testing MDEMG on macOS!
+Thank you for beta testing MDEMG!
