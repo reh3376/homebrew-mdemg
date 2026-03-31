@@ -1,6 +1,6 @@
 # MDEMG macOS Beta Testing Guide
 
-**Version under test:** v0.2.15 (CLI) / v1.7.0 (Menubar)
+**Version under test:** v0.4.0 (CLI)
 **Date:** _______________
 **Tester:** _______________
 **Machine specs:** _______________
@@ -13,13 +13,14 @@
 
 | Tier | Section | Tests | Pass | Fail | Skip | Notes |
 |------|---------|-------|------|------|------|-------|
-| 1 | Installation & Core | 9 | | | | |
-| 2 | Ingestion | 9 | | | | |
+| 1 | Installation & Core | 10 | | | | |
+| 2 | Ingestion | 10 | | | | |
 | 3 | CMS & RSIC | 10 | | | | |
 | 4 | Backup & Maintenance | 5 | | | | |
 | 5 | Advanced | 10 | | | | |
-| M | Menubar App | 6 | | | | |
-| **Total** | | **49** | | | | |
+| DC | Docker Compose & New Commands | 8 | | | | |
+| M | Menubar App (archived — skip) | 6 | | | | |
+| **Total** | | **59** | | | | |
 
 ---
 
@@ -58,7 +59,7 @@ brew --version
 
 ### Step 3: Install Docker Desktop
 
-Docker Desktop runs the Neo4j database container. MDEMG cannot function without it.
+Docker Desktop runs the MDEMG stack (Neo4j, TimescaleDB, MDEMG server, neural sidecar, and Grafana). MDEMG cannot function without it.
 
 ```bash
 # Check if Docker is already installed and running
@@ -97,7 +98,7 @@ docker run --rm hello-world
 
 The machine must have internet access to:
 - Download the MDEMG binary via Homebrew
-- Pull the Neo4j Docker image (`neo4j:5`, ~500MB) on first `mdemg db start`
+- Pull Docker images (~2 GB total) on first `mdemg init`
 - (Optional) Connect to the OpenAI API for embeddings
 
 ```bash
@@ -273,7 +274,7 @@ mdemg version
 **Expected output:**
 
 ```
-mdemg v0.2.x
+mdemg v0.4.x
   commit:  <short-hash>
   built:   <date>
   go:      go1.24.x
@@ -291,43 +292,58 @@ cd ~/mdemg-test
 mdemg init
 ```
 
-**Expected:** Interactive wizard prompts for Space ID, Neo4j URI, embedding provider, and OpenAI API key. Creates `.mdemg/config.yaml`, `.mdemgignore`, and `.env` in the current directory.
+**Expected:** Interactive wizard performs the following steps:
+1. Checks Docker availability
+2. Prompts for Space ID, Neo4j URI and credentials
+3. Scans for free ports (MDEMG, Neo4j Bolt/HTTP, TimescaleDB, Neural sidecar, Grafana)
+4. Prompts for Grafana and TimescaleDB passwords
+5. Prompts for embedding provider (OpenAI/Ollama/disabled) and API key
+6. Prompts for LLM summary model selection
+7. Prompts for Jiminy inner-voice guidance model
+8. Prompts for UxTS plugin enablement
+9. Prompts for Git hooks and MCP/IDE integration (Cursor, VS Code, Claude Code)
+10. Generates `.env`, `.mdemg/config.yaml`, and `.mdemgignore`
+11. Runs `docker compose up -d` to start 5 services (Neo4j, TimescaleDB, MDEMG server, neural sidecar, Grafana)
+12. Copies binary to `./bin/mdemg`
 
-> **Important:** Do NOT use `--defaults` here. The interactive wizard lets you enter your OpenAI API key, which is required for embedding and LLM features in subsequent tests. If you skip this, `mdemg start` will fail on embedding checks.
+> **Important:** Do NOT use `--defaults` here. The interactive wizard lets you enter your OpenAI API key, which is required for embedding and LLM features in subsequent tests.
 
 ```bash
-# Verify files exist
-ls -la .mdemg/config.yaml .mdemgignore
+# Verify files and services
+ls -la .mdemg/config.yaml .mdemgignore .env
+docker compose ps    # All 5 services should show "running"
 ```
 
-- [ ] **PASS** — both files exist and contain valid content
+- [ ] **PASS** — config files exist, 5 Docker services running
 
 ---
 
-### T1.4: Neo4j Container Lifecycle
+### T1.4: Docker Compose Lifecycle
 
 ```bash
-# Start Neo4j
-mdemg db start
+# Check all services
+docker compose ps
 
-# Check status
+# Restart all services
+docker compose restart
+
+# Stop all services
+docker compose down
+
+# Start all services again
+docker compose up -d
+```
+
+**Expected:** Each command succeeds. `docker compose ps` shows 5 services (neo4j, timescaledb, mdemg, neural, grafana) as "running".
+
+```bash
+# Verify Neo4j specifically
 mdemg db status
-
-# Stop Neo4j
-mdemg db stop
-
-# Restart Neo4j
-mdemg db start
 ```
 
-**Expected:** Each command succeeds. `mdemg db status` shows the container as `running` with port info.
+> **Note:** `mdemg db start` and `mdemg db stop` are deprecated. Use `docker compose up -d` / `docker compose down` instead. The legacy commands still work for native/dev mode.
 
-```bash
-# Verify container is running
-docker ps --filter "name=mdemg-neo4j" --format "{{.Status}}"
-```
-
-- [ ] **PASS** — container starts, status shows running, stops cleanly, restarts
+- [ ] **PASS** — all 5 services start, stop, and restart cleanly
 
 ---
 
@@ -345,32 +361,27 @@ mdemg db migrate
 
 ### T1.6: Server Start
 
-**Try daemon mode first:**
+> **Note:** In Docker Compose mode (the default after `mdemg init`), the MDEMG server starts automatically as part of `docker compose up -d`. This test verifies the server is running and accessible.
 
 ```bash
-mdemg start --auto-migrate
-```
-
-**Expected:** Server starts as a background daemon on port 9999.
-
-```bash
-# Verify
+# Verify server is running (started by Docker Compose)
 mdemg status
+curl -s http://localhost:9999/healthz | python3 -m json.tool
 ```
 
-**Fallback — foreground mode (open a second terminal):**
+**Expected:** Server is running on port 9999. Healthz returns `{"status":"ok","version":"...","commit":"..."}`.
+
+**If server is not running (native/dev mode only):**
 
 ```bash
+# Daemon mode
+mdemg start --auto-migrate
+
+# Or foreground mode (second terminal)
 mdemg serve --auto-migrate
 ```
 
-Leave this terminal running. Continue tests in the original terminal.
-
-**Record which method worked:**
-
-- [ ] **PASS (daemon)** — `mdemg start` worked
-- [ ] **PASS (foreground)** — `mdemg serve` worked (daemon failed)
-- [ ] **FAIL** — neither method started the server
+- [ ] **PASS** — server running and healthz responds with OK status
 
 ---
 
@@ -415,6 +426,18 @@ mdemg embeddings check
 
 - [ ] **PASS** — embedding check runs and reports status
 - [ ] **SKIP** — no embedding provider configured (note in results)
+
+---
+
+### T1.10: Browser Dashboard
+
+```bash
+open http://localhost:9999/ui/
+```
+
+**Expected:** Dashboard loads in the browser with 9 tabs: Status, Memory, Learning, Config, Logs, RSIC, Plugins, Features, Backups. Verify at least 3 tabs render data or a reasonable empty state.
+
+- [ ] **PASS** — browser dashboard loads, tabs are navigable
 
 ---
 
@@ -595,6 +618,21 @@ Expected: Fast settings BUT LLM summaries still enabled (flag override takes pre
 mdemg ingest --path . --speed fast --preset ml_cuda --dry-run
 ```
 Expected: Speed preset (workers, batch, LLM) + exclusion preset (ml_cuda dirs/patterns) both applied.
+
+- [ ] **PASS** — all 4 speed/preset combinations show correct dry-run output
+
+---
+
+### T2.10: Claude MD Ingestion
+
+```bash
+mdemg ingest-claude-md --space-id beta-test
+```
+
+**Expected:** Discovers and ingests Claude Code `.md` files (CLAUDE.md, MEMORY.md, etc.) from known locations. Uses SHA256 content-hash change detection to avoid re-ingesting unchanged files.
+
+- [ ] **PASS** — ingest-claude-md runs and reports files processed
+- [ ] **SKIP** — no Claude Code .md files present
 
 ---
 
@@ -936,12 +974,19 @@ mdemg mcp
 ### T5.7: Upgrade Check
 
 ```bash
+# Check for stable updates
 mdemg upgrade --dry-run
+
+# Check for edge updates (latest main branch build)
+mdemg upgrade --edge --dry-run
 ```
 
-**Expected:** Reports current version and latest available version.
+**Expected:** Reports current version, latest available version, and whether an update is available. The `--edge` variant checks against the rolling edge release (updated on every merge to main).
 
-- [ ] **PASS** — upgrade check runs and reports version information
+> **Note:** `mdemg update` is an alias for `mdemg upgrade`.
+
+- [ ] **PASS** — stable upgrade check runs and reports version information
+- [ ] **PASS** — edge upgrade check runs and reports commit information
 - [ ] **FAIL** — upgrade fails (note error message below)
 
 **Error message received (if failed):** _______________
@@ -1000,17 +1045,21 @@ mdemg teardown --dry-run
 
 ---
 
-### T5.10: Teardown via Guided Wizard (Menubar App)
+### T5.10: Teardown (CLI)
 
-> **Warning:** This removes all MDEMG artifacts for the test project. Run this test LAST (after Menubar tests) — it replaces the manual cleanup steps below.
+> **Warning:** This removes all MDEMG artifacts for the test project. Run this test LAST — it replaces the manual cleanup steps below.
 
-1. Open the menubar app → Config tab → click **"Remove Instance..."**
-2. Verify wizard shows instance name, project path, and dry-run preview (Step 1: Confirm)
-3. Click **Continue** → verify export decision step (Step 2)
-4. Click **"Export First"** → verify export setup with profile picker and file save dialog (Step 3)
-5. Click **"Back"** → click **"Skip Export"** → verify teardown executes with spinner (Step 4)
-6. Verify result shows changes list and backup path (Step 5)
-7. Click **Done** → verify instance removed from list
+```bash
+cd ~/mdemg-test
+
+# Preview what would be removed
+mdemg teardown --dry-run
+
+# Execute teardown (stops services, removes hooks, cleans config)
+mdemg teardown --yes
+```
+
+**Expected:** Dry run lists all artifacts that would be removed. Full teardown stops the server, removes Docker containers/volumes, uninstalls hooks, cleans MCP/IDE configs, and removes `.mdemg/`.
 
 ```bash
 # Verify cleanup
@@ -1018,11 +1067,124 @@ ls .mdemg 2>/dev/null && echo "FAIL: .mdemg still exists" || echo "OK: .mdemg re
 mdemg hooks list 2>/dev/null || echo "OK: hooks check (expected to fail — no .mdemg)"
 ```
 
-- [ ] **PASS** — wizard completes all steps, teardown executes, all artifacts removed, backup created
+- [ ] **PASS** — dry run lists artifacts, teardown removes all MDEMG artifacts
 
 ---
 
-## Tier M: Menubar App (~15 min)
+## Tier DC: Docker Compose & New Commands (~15 min)
+
+> **Requires:** All services running via `docker compose up -d` (completed during `mdemg init`).
+
+### DC.1: Docker Compose Status
+
+```bash
+docker compose ps
+```
+
+**Expected:** 5 services listed as "running": neo4j, timescaledb, mdemg, neural, grafana.
+
+- [ ] **PASS** — all 5 services running
+
+---
+
+### DC.2: TimescaleDB Commands
+
+```bash
+mdemg tsdb status
+mdemg tsdb stats
+```
+
+**Expected:** `tsdb status` shows connection status. `tsdb stats` shows metric counts and table sizes.
+
+- [ ] **PASS** — both commands return data without errors
+
+---
+
+### DC.3: Sidecar Commands
+
+```bash
+mdemg sidecar status
+mdemg sidecar doctor
+```
+
+**Expected:** `sidecar status` shows sidecar service state. `sidecar doctor` runs health checks and reports results.
+
+- [ ] **PASS** — both commands return status information
+
+---
+
+### DC.4: Synergy Commands
+
+```bash
+mdemg synergy status
+```
+
+**Expected:** Reports synergy fingerprint, version alignment, and optimization suggestions.
+
+- [ ] **PASS** — synergy status returns without errors
+
+---
+
+### DC.5: Data Commands
+
+```bash
+mdemg data status
+mdemg data audit
+```
+
+**Expected:** `data status` shows training data collection state. `data audit` reports data quality metrics.
+
+- [ ] **PASS** — both commands return data or "no data collected yet"
+
+---
+
+### DC.6: Service Supervision
+
+```bash
+mdemg service status
+```
+
+**Expected:** Reports OS-level service status (installed/not installed, running/stopped).
+
+- [ ] **PASS** — service status returns without errors
+
+---
+
+### DC.7: Grafana Access
+
+```bash
+curl -s http://localhost:3000/api/health
+```
+
+**Expected:** Grafana responds with `{"database":"ok"}` or similar healthy status.
+
+- [ ] **PASS** — Grafana health endpoint responds
+
+---
+
+### DC.8: Browser Dashboard Tabs
+
+Navigate to `http://localhost:9999/ui/` and click through each of the 9 tabs:
+
+| Tab | What to look for |
+|-----|-----------------|
+| **Status** | Server status, subsystem health, configured models |
+| **Memory** | Observation count, layer breakdown (L0-L5), health score |
+| **Learning** | Hebbian edge count, learning phase, Freeze/Unfreeze toggle |
+| **Config** | Key-value config pairs with source annotations |
+| **Logs** | Recent server logs, search/filter, color-coded severity |
+| **RSIC** | Engine status, watchdog health, cycle history |
+| **Plugins** | Installed plugins with status badges |
+| **Features** | Feature toggles and status |
+| **Backups** | Backup history, trigger backup button |
+
+- [ ] **PASS** — all 9 tabs load and display data (or reasonable empty state)
+
+---
+
+## Tier M: Menubar App (~15 min) — ARCHIVED
+
+> **The mdemg-menubar repository has been archived.** The Browser Dashboard at `http://localhost:9999/ui/` replaces the menubar app for status monitoring and configuration. This tier is preserved for historical reference but **should be skipped** during testing. See Tier DC for the browser dashboard tests instead.
 
 > **Requires:** The MDEMG server must be running (`mdemg status` shows healthy). Run these tests **before** T5.10 (teardown), which removes the instance the menubar monitors.
 
@@ -1156,14 +1318,14 @@ mdemg start --auto-migrate
 
 ## Cleanup / Teardown
 
-### Recommended: Use `mdemg teardown` (if T5.10 was not run via the Menubar wizard)
+### Recommended: Use `mdemg teardown` (if T5.10 was not already run)
 
 ```bash
 cd ~/mdemg-test
 mdemg teardown --yes
 ```
 
-This single command handles steps 1-6 below automatically: stops the server, removes Docker container/volume, uninstalls hooks, cleans MCP/IDE configs, backs up and removes `.mdemg/`, and deregisters from the menubar app.
+This single command handles steps 1-6 below automatically: stops the server, removes Docker containers/volumes, uninstalls hooks, cleans MCP/IDE configs, backs up and removes `.mdemg/`.
 
 ### Manual cleanup (fallback)
 
@@ -1179,11 +1341,8 @@ mdemg stop
 cd ~/mdemg-test
 mdemg hooks uninstall
 
-# 3. Stop and remove Neo4j container
-mdemg db stop --remove
-
-# 4. Remove Docker volumes
-docker volume ls -q --filter name=mdemg | xargs docker volume rm
+# 3. Stop and remove all Docker Compose services and volumes
+docker compose down -v
 
 # 5. Remove MDEMG config (optional — only if uninstalling entirely)
 # rm -rf .mdemg
@@ -1207,6 +1366,8 @@ rm -rf ~/mdemg-test
 
 ### 1. Daemon Mode (`mdemg start/stop/restart`)
 
+> **Note:** Docker Compose is the primary deployment method as of v0.3.0. Daemon mode (`mdemg start/stop/restart`) is for native development only. Most users should use `docker compose up -d` instead.
+
 **Issue:** Daemon mode uses Unix process management (PID files, signal handling). It works natively on macOS but may occasionally fail if the PID file becomes stale (e.g., after a system crash).
 
 **Workaround:** If `mdemg start` reports the server is already running but `mdemg status` shows it's not responding:
@@ -1219,7 +1380,7 @@ rm -f .mdemg/mdemg.pid
 mdemg start --auto-migrate
 ```
 
-For unattended operation, create a launchd plist:
+For unattended operation, use `mdemg service install` (recommended) or create a launchd plist manually:
 
 ```bash
 cat > ~/Library/LaunchAgents/com.mdemg.server.plist << 'EOF'
@@ -1253,9 +1414,9 @@ launchctl load ~/Library/LaunchAgents/com.mdemg.server.plist
 
 ### 2. Docker Desktop Memory
 
-**Issue:** Docker Desktop defaults to limited memory allocation. Neo4j may fail to start or run slowly if Docker doesn't have enough memory.
+**Issue:** Docker Desktop defaults to limited memory allocation. The MDEMG stack runs 5 services (Neo4j, TimescaleDB, MDEMG server, neural sidecar, Grafana) which may fail to start or run slowly if Docker doesn't have enough resources.
 
-**Workaround:** Docker Desktop menu bar icon > Settings > Resources > Memory: set to at least 4 GB.
+**Workaround:** Docker Desktop menu bar icon > Settings > Resources: set Memory to at least **4 GB** and CPUs to at least **2**.
 
 ### 3. Apple Silicon vs Intel
 
@@ -1310,6 +1471,22 @@ lsof -i :9999
 
 # Start server on a different port
 LISTEN_ADDR=:10000 mdemg serve --auto-migrate
+```
+
+### 7. Docker Compose Port Conflicts
+
+**Issue:** The MDEMG stack uses several ports by default (9999 for MDEMG server, 7474/7687 for Neo4j, 5432 for TimescaleDB, 3000 for Grafana). If other services are using these ports, `docker compose up -d` may fail.
+
+**Workaround:** `mdemg init` automatically detects port conflicts and assigns free ports. If you encounter conflicts after init:
+
+```bash
+# Check which ports are in use
+lsof -i :9999 -i :7474 -i :7687 -i :5432 -i :3000
+
+# Edit .env to change conflicting ports, then restart
+docker compose down
+# Edit LISTEN_ADDR, NEO4J_HTTP_PORT, etc. in .env
+docker compose up -d
 ```
 
 ---

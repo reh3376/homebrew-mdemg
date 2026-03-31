@@ -35,7 +35,7 @@ brew --version
 
 ### 3. Docker Desktop
 
-Docker Desktop runs the Neo4j database container. MDEMG cannot function without it.
+Docker Desktop runs the MDEMG stack (Neo4j, TimescaleDB, MDEMG server, neural sidecar, and Grafana). MDEMG cannot function without it.
 
 ```bash
 # Check if Docker is installed and running
@@ -59,7 +59,9 @@ docker run --rm hello-world
 # Should print "Hello from Docker!"
 ```
 
-> MDEMG requires **Neo4j 5.11+** for vector index support. The `mdemg db start` command pulls Neo4j 5.x automatically.
+> MDEMG requires **Neo4j 5.11+** for vector index support. `mdemg init` pulls all required Docker images automatically.
+
+> **Resource requirements:** Docker Desktop should have at least 4 GB RAM and 2 CPUs allocated (Settings → Resources).
 
 > **Note:** Docker Desktop must be running whenever you use MDEMG. It does not auto-start by default. To enable auto-start: Docker Desktop menu bar icon → Settings → General → "Start Docker Desktop when you sign in to your computer."
 
@@ -134,7 +136,7 @@ mdemg version
 **Expected output:**
 
 ```
-mdemg v0.2.x
+mdemg v0.4.x
   commit:  <short-hash>
   built:   <date>
   go:      go1.24.x
@@ -158,70 +160,37 @@ source ~/.zprofile
 
 Use the step-by-step flow to verify each component individually and catch issues early.
 
-**Step 1 — Initialize configuration:**
+**Step 1 — Initialize and start all services:**
 
 ```bash
 cd ~/your-project    # or any directory you want to use with MDEMG
 mdemg init           # Interactive wizard — press Enter to accept defaults
 ```
 
-Expected: creates `.mdemg/config.yaml` and `.mdemgignore` in the current directory.
+Expected: generates `.env` with port assignments, `.mdemg/config.yaml`, and `.mdemgignore`. Runs `docker compose up -d` to start 5 services (Neo4j, TimescaleDB, MDEMG server, neural sidecar, Grafana). First run pulls Docker images (~2 GB total).
+
+Verify:
 
 ```bash
-# Verify
-ls -la .mdemg/config.yaml .mdemgignore
+docker compose ps    # All 5 services should show "running"
 ```
 
 For non-interactive setup with all defaults:
 
 ```bash
-mdemg init --defaults
+mdemg init --quick
 ```
 
-**Step 2 — Start Neo4j:**
+**Step 2 — Verify services are healthy:**
 
 ```bash
-mdemg db start
-```
-
-Expected: starts a Docker container running Neo4j. First run pulls the `neo4j:5` image (~500MB).
-
-```bash
-# Verify container is running
-mdemg db status
-# Should show: container running, bolt port 7687, HTTP port 7474
-```
-
-**Step 3 — Start the server:**
-
-```bash
-mdemg start --auto-migrate
-```
-
-Expected: starts the MDEMG server as a background daemon on port 9999 and applies any pending database migrations.
-
-```bash
-# Verify server is running
 mdemg status
-# Should show server running on :9999, database connected
-
-# Health check
-curl -s http://localhost:9999/healthz
-# Expected: {"status":"ok"}
-
-# Readiness check
-curl -s http://localhost:9999/readyz
-# Expected: {"status":"ok"} (or JSON showing component health)
+curl -s http://localhost:9999/healthz | python3 -m json.tool
+# Open the browser dashboard
+open http://localhost:9999/ui/
 ```
 
-If `mdemg start` fails, use foreground mode in a separate terminal window:
-
-```bash
-mdemg serve --auto-migrate
-# Leave this terminal running — continue in another window
-```
-
-**Step 4 — Ingest a codebase:**
+**Step 3 — Ingest a codebase:**
 
 ```bash
 mdemg ingest --path .
@@ -261,7 +230,12 @@ EOF
 git add . && git commit -m "initial commit"
 ```
 
-Then run through the Quick Start steps from within this directory.
+Then run through the Quick Start steps from within this directory:
+
+```bash
+mdemg init --quick
+mdemg ingest --path .
+```
 
 ---
 
@@ -357,13 +331,15 @@ mdemg space list
 | `mdemg restart` | Restart the server |
 | `mdemg status` | Show server, database, and embedding status |
 | `mdemg serve` | Run server in foreground (development) |
-| `mdemg db start` | Start Neo4j container |
-| `mdemg db stop` | Stop Neo4j container (`--remove` to delete) |
+| `mdemg db start` | Start Neo4j container (deprecated — use `docker compose up -d neo4j`) |
+| `mdemg db stop` | Stop Neo4j container (deprecated — use `docker compose stop neo4j`) |
 | `mdemg db status` | Show container and schema status |
 | `mdemg db migrate` | Apply pending schema migrations |
 | `mdemg db shell` | Open interactive cypher-shell |
 | `mdemg db backup` | Trigger, list, or configure backups |
+| `mdemg tsdb` | TimescaleDB management (start, stop, status, migrate, shell, stats, backup) |
 | `mdemg ingest` | Ingest a codebase into the knowledge graph |
+| `mdemg ingest-claude-md` | Ingest Claude Code .md memory files |
 | `mdemg consolidate` | Run hidden layer clustering and consolidation |
 | `mdemg watch` | Watch a directory and auto-ingest on changes |
 | `mdemg extract-symbols` | Extract code symbols via tree-sitter |
@@ -379,12 +355,16 @@ mdemg space list
 | `mdemg menubar` | Manage menu bar companion app (start/stop/restart/status) |
 | `mdemg decay` | Apply temporal decay to learning edges |
 | `mdemg prune` | Prune weak edges, tombstone orphans |
-| `mdemg sidecar` | Manage sidecar services (up, down, attach, detach) |
+| `mdemg sidecar` | Sidecar lifecycle management (13 subcommands) |
+| `mdemg synergy` | Claude Code ↔ MDEMG synergy optimization |
+| `mdemg data` | Training data collection and management |
 | `mdemg mcp` | Run MCP server for IDE integration |
 | `mdemg space` | Manage memory spaces (list, export, import, copy, delete, rename, info) |
+| `mdemg service` | OS-level background service management (install, uninstall, status, restart, logs) |
 | `mdemg plugin` | Manage plugins |
 | `mdemg demo` | Run interactive demo |
-| `mdemg upgrade` | Self-update to the latest release |
+| `mdemg upgrade` | Self-update to the latest release (`--edge` for edge builds). `mdemg update` is an alias |
+| `mdemg teardown` | Remove MDEMG from a project (config, hooks, services) |
 
 Use `mdemg <command> --help` for full flag details on any command.
 
@@ -401,6 +381,7 @@ For complete reference documentation, see the [CLI Reference](https://github.com
 | [CMS & RSIC Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/cms-rsic-guide.md) | Conversation memory, observation types, surprise scoring, self-improvement cycles |
 | [Ingestion Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/ingestion-guide.md) | All 8 ingestion methods — codebase, scraper, Linear, webhooks, file watcher, API |
 | [Ingest Performance](https://github.com/reh3376/mdemg/blob/main/docs/guides/ingest-performance.md) | Speed presets, tuning flags, and performance tips for codebase ingestion |
+| [Docker Deployment](https://github.com/reh3376/mdemg/blob/main/docs/user/quickstart-docker.md) | Docker Compose setup, port configuration, service management |
 
 ---
 
@@ -411,6 +392,8 @@ Priority chain (lowest to highest):
 ```
 defaults → .mdemg/config.yaml → keychain → .env → environment variables → CLI flags
 ```
+
+> In Docker Compose deployments (the default), `mdemg init` generates a `.env` file with all port assignments and service credentials. This is the primary configuration file for Docker deployments.
 
 ### View and validate
 
@@ -476,6 +459,25 @@ export OPENAI_API_KEY=sk-...
 
 ## Troubleshooting
 
+### Docker Compose services not starting
+
+```bash
+# Check service status
+docker compose ps
+docker compose logs    # View all service logs
+
+# If a specific service is failing:
+docker compose logs mdemg      # MDEMG server logs
+docker compose logs neo4j      # Neo4j logs
+docker compose logs timescaledb # TimescaleDB logs
+
+# Restart all services
+docker compose restart
+
+# Nuclear option — recreate everything
+docker compose down -v && mdemg init --quick
+```
+
 ### `mdemg: command not found` after install
 
 ```bash
@@ -504,7 +506,11 @@ docker info
 ### Neo4j won't start
 
 ```bash
-# Check container status
+# In Docker Compose mode (default):
+docker compose logs neo4j
+docker compose restart neo4j
+
+# In native/legacy mode:
 mdemg db status
 docker ps -a --filter "name=mdemg-neo4j"
 
@@ -513,8 +519,8 @@ docker logs mdemg-neo4j-$(basename $(pwd))
 
 # Common causes:
 # 1. Docker Desktop not running → start it first
-# 2. Port 7687 already in use → mdemg db start --port 7688
-# 3. Previous container in bad state → mdemg db stop --remove && mdemg db start
+# 2. Port 7687 already in use → check with: lsof -i :7687
+# 3. Previous container in bad state → docker compose down -v && mdemg init --quick
 ```
 
 ### Neo4j port conflict
@@ -583,11 +589,13 @@ mdemg config validate
 
 ```bash
 curl -s http://localhost:9999/healthz | python3 -m json.tool
+# Expected: {"status":"ok","version":"...","commit":"..."}
+
 curl -s http://localhost:9999/readyz | python3 -m json.tool
 
 # If server is not responding at all:
 mdemg status
-# If not running: mdemg start --auto-migrate
+# If not running: docker compose up -d
 ```
 
 ---
@@ -601,23 +609,30 @@ brew update && brew upgrade mdemg
 mdemg version
 
 # Apply any new database migrations
-mdemg start --auto-migrate
-# Or if already running:
 mdemg restart
 mdemg db migrate
 ```
+
+### Self-update (v0.4.0+)
+
+```bash
+mdemg upgrade            # Update to latest stable release
+mdemg upgrade --edge     # Update to latest edge build (main branch)
+mdemg upgrade --dry-run  # Check for updates without installing
+```
+
+The `upgrade` command downloads the new binary, verifies its SHA-256 checksum, and replaces the current executable. `mdemg update` is an alias for `mdemg upgrade`.
 
 ---
 
 ## Uninstall
 
 ```bash
-# 1. Stop the server and Neo4j
-mdemg stop
-mdemg db stop --remove
+# 1. Remove MDEMG config, hooks, and stop services
+mdemg teardown --yes
 
-# 2. Remove Docker volumes (deletes all stored data)
-docker volume ls -q --filter name=mdemg | xargs -r docker volume rm
+# 2. Remove containers and volumes (deletes all stored data)
+docker compose down -v
 
 # 3. Uninstall the CLI and remove the tap
 brew uninstall mdemg
@@ -643,6 +658,5 @@ man mdemg-ingest
 ## Links
 
 - [Source Code](https://github.com/reh3376/mdemg)
-- [Menu Bar App](https://github.com/reh3376/mdemg-menubar) — macOS system tray companion
-- [Windows Installer](https://github.com/reh3376/mdemg-windows)
+- [Docker Deployment Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/quickstart-docker.md)
 - [Issues](https://github.com/reh3376/mdemg/issues)
