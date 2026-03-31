@@ -5,14 +5,14 @@
 class Mdemg < Formula
   desc "Multi-Dimensional Emergent Memory Graph — cognitive substrate for AI agents"
   homepage "https://github.com/reh3376/mdemg"
-  version "0.3.4"
+  version "0.4.0"
 
   depends_on "docker" => :optional
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.3.4/mdemg_0.3.4_darwin_amd64.tar.gz"
-      sha256 "851251af540455e431af01f67449814fdbdffe4a940e03a9b38c2cdd1a844d08"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.4.0/mdemg_0.4.0_darwin_amd64.tar.gz"
+      sha256 "128b118765569216843c52d2e6a12200b501e44d4f258683c6f45fb509bcef03"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -21,11 +21,15 @@ class Mdemg < Formula
         plugdir = share/"mdemg/plugins/uxts-module"
         plugdir.install "uxts-module"
         plugdir.install "plugins/uxts-module/manifest.json"
+        # Obsidian plugin (INGESTION module for Obsidian vault parsing)
+        obsdir = share/"mdemg/plugins/obsidian-module"
+        obsdir.install "obsidian-module"
+        obsdir.install "plugins/obsidian-module/manifest.json"
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.3.4/mdemg_0.3.4_darwin_arm64.tar.gz"
-      sha256 "24df8b748cfaeeea46fe53a923e8ff33eae405c7a0ff311e5482e8b54fe40e53"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.4.0/mdemg_0.4.0_darwin_arm64.tar.gz"
+      sha256 "3bca30e5be5f81bb56b648b75ecf96895b8d09f07075b894f1af367b6fcd421a"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -34,14 +38,18 @@ class Mdemg < Formula
         plugdir = share/"mdemg/plugins/uxts-module"
         plugdir.install "uxts-module"
         plugdir.install "plugins/uxts-module/manifest.json"
+        # Obsidian plugin (INGESTION module for Obsidian vault parsing)
+        obsdir = share/"mdemg/plugins/obsidian-module"
+        obsdir.install "obsidian-module"
+        obsdir.install "plugins/obsidian-module/manifest.json"
       end
     end
   end
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.3.4/mdemg_0.3.4_linux_amd64.tar.gz"
-      sha256 "6d6de60cb8e7bd9c62a78d48e6d70969b9218cb7ddb55f99189f23b71410d373"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.4.0/mdemg_0.4.0_linux_amd64.tar.gz"
+      sha256 "beedff444448aef651d127183ff27f4c22aa60fd6d81f9a3e95296783d774d40"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -49,11 +57,15 @@ class Mdemg < Formula
         plugdir = share/"mdemg/plugins/uxts-module"
         plugdir.install "uxts-module"
         plugdir.install "plugins/uxts-module/manifest.json"
+        # Obsidian plugin (INGESTION module for Obsidian vault parsing)
+        obsdir = share/"mdemg/plugins/obsidian-module"
+        obsdir.install "obsidian-module"
+        obsdir.install "plugins/obsidian-module/manifest.json"
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.3.4/mdemg_0.3.4_linux_arm64.tar.gz"
-      sha256 "3d8ad2f8dcebd9140a45e7a499a8e8dfed9d90010abbaa158b7b551ba564e2ec"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.4.0/mdemg_0.4.0_linux_arm64.tar.gz"
+      sha256 "6cf57473f74fe601a34d0106da9390da9cc4f94b150695f6ab390eca690ddb84"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -61,6 +73,10 @@ class Mdemg < Formula
         plugdir = share/"mdemg/plugins/uxts-module"
         plugdir.install "uxts-module"
         plugdir.install "plugins/uxts-module/manifest.json"
+        # Obsidian plugin (INGESTION module for Obsidian vault parsing)
+        obsdir = share/"mdemg/plugins/obsidian-module"
+        obsdir.install "obsidian-module"
+        obsdir.install "plugins/obsidian-module/manifest.json"
       end
     end
   end
