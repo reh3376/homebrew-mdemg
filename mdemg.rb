@@ -5,14 +5,14 @@
 class Mdemg < Formula
   desc "Multi-Dimensional Emergent Memory Graph — cognitive substrate for AI agents"
   homepage "https://github.com/reh3376/mdemg"
-  version "0.4.0"
+  version "0.4.1"
 
   depends_on "docker" => :optional
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.4.0/mdemg_0.4.0_darwin_amd64.tar.gz"
-      sha256 "128b118765569216843c52d2e6a12200b501e44d4f258683c6f45fb509bcef03"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.4.1/mdemg_0.4.1_darwin_amd64.tar.gz"
+      sha256 "c3655e40a4b54ec718b38f458189c7744252fdb323af86f420e134dcb95418aa"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -28,8 +28,8 @@ class Mdemg < Formula
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.4.0/mdemg_0.4.0_darwin_arm64.tar.gz"
-      sha256 "3bca30e5be5f81bb56b648b75ecf96895b8d09f07075b894f1af367b6fcd421a"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.4.1/mdemg_0.4.1_darwin_arm64.tar.gz"
+      sha256 "bc287cdb25bbbf472cc7d4b2b93fd846042f290e644d509e6422de2cd50bc314"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -48,8 +48,8 @@ class Mdemg < Formula
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.4.0/mdemg_0.4.0_linux_amd64.tar.gz"
-      sha256 "beedff444448aef651d127183ff27f4c22aa60fd6d81f9a3e95296783d774d40"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.4.1/mdemg_0.4.1_linux_amd64.tar.gz"
+      sha256 "306d14660f8b82e015e4c49ac78588c92418996fe58a117208ec35fce2f83ff7"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -64,8 +64,8 @@ class Mdemg < Formula
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.4.0/mdemg_0.4.0_linux_arm64.tar.gz"
-      sha256 "6cf57473f74fe601a34d0106da9390da9cc4f94b150695f6ab390eca690ddb84"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.4.1/mdemg_0.4.1_linux_arm64.tar.gz"
+      sha256 "42b9d5f3a07fee0e79e7da7888b9a42f50b9204a185d8286e27bb20f17732cf8"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
