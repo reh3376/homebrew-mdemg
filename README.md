@@ -1,374 +1,171 @@
 # MDEMG — Multi-Dimensional Emergent Memory Graph
 
-Persistent memory for AI agents. Observations accumulate, cluster into themes, and promote to emergent concepts through Hebbian learning — giving LLMs a long-term knowledge graph that grows and self-organizes.
+Persistent, self-organizing memory for AI agents. Observations accumulate, cluster into themes, and promote to emergent concepts through Hebbian learning — giving LLMs a long-term knowledge graph that grows, self-improves, and develops understanding over time.
+
+MDEMG is not a vector database or a RAG pipeline. It is a **cognitive substrate** — a 5-layer neural memory hierarchy that mirrors how biological memory consolidates short-term experience into long-term knowledge.
 
 ---
 
-## Prerequisites
+## How It Works
 
-Complete each item below before installing MDEMG. Verify each one — do not assume anything is already installed.
+### 5-Layer Memory Hierarchy
 
-### 1. macOS Version
+| Layer | Name | What it stores |
+|-------|------|---------------|
+| L0 | Observations | Raw inputs — code files, conversation notes, ingested documents, each with embeddings and summaries |
+| L1 | Themes | Clustered groups of related observations, formed via graph convolution |
+| L2 | Concepts | Higher-order abstractions that emerge from theme co-occurrence |
+| L3–L4 | Meta-Concepts | Cross-domain patterns, analogies, and bridges between concept clusters |
+| L5 | Principles | Emergent rules and architectural patterns with dynamic relationship typing (`ANALOGOUS_TO`, `CONTRASTS_WITH`, `BRIDGES`) |
 
-MDEMG requires macOS 12 (Monterey) or later on Apple Silicon (M1+) or Intel.
+Observations enter at L0. The consolidation pipeline automatically clusters, promotes, and interconnects them upward. No manual taxonomy required — structure emerges from the data.
 
-```bash
-# Check your macOS version
-sw_vers
-# ProductVersion must be 12.0 or higher
-```
+### Hebbian Learning
 
-### 2. Homebrew
+"Neurons that fire together wire together." When concepts are retrieved together, their connecting edges strengthen. Over time, the graph encodes which ideas are genuinely related based on usage patterns, not just embedding similarity.
 
-Homebrew is the package manager used to install MDEMG. If you don't have it, install it first.
+### Surprise Scoring
 
-```bash
-# Check if Homebrew is installed
-brew --version
-# If "command not found", install Homebrew:
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+Every observation receives a novelty score (0.0–1.0). Redundant information decays; genuinely novel inputs persist longer and trigger faster consolidation. This prevents the graph from drowning in repetitive data.
 
-# After install, follow the on-screen instructions to add brew to your PATH
-# Then verify:
-brew --version
-```
+### RSIC Self-Improvement
 
-### 3. Docker Desktop
+The Recursive Self-Improvement Cycle continuously optimizes the memory system itself:
 
-Docker Desktop runs the MDEMG stack (Neo4j, TimescaleDB, MDEMG server, neural sidecar, and Grafana). MDEMG cannot function without it.
+- **Assess** — 9 health dimensions (retrieval quality, edge consistency, orphan ratio, embedding coverage, ...)
+- **Reflect** — Pattern detection across recent performance
+- **Act** — Safety-bounded corrective actions (edge refresh, re-embedding, consolidation triggers)
 
-```bash
-# Check if Docker is installed and running
-docker --version
-docker info    # This must succeed — if it errors, Docker Desktop is not running
-```
+Three orchestration tiers: micro (per-request), meso (per-session), macro (scheduled).
 
-If Docker is not installed:
+### Jiminy Inner Voice
 
-1. Download from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) or install via Homebrew:
-   ```bash
-   brew install --cask docker
-   ```
-2. Launch Docker Desktop from `/Applications/Docker.app`
-3. Wait for the Docker icon in the menu bar to show "Docker Desktop is running"
-4. Accept the license agreement if prompted
-
-```bash
-# Verify Docker is running
-docker run --rm hello-world
-# Should print "Hello from Docker!"
-```
-
-> MDEMG requires **Neo4j 5.11+** for vector index support. `mdemg init` pulls all required Docker images automatically.
-
-> **Resource requirements:** Docker Desktop should have at least 4 GB RAM and 2 CPUs allocated (Settings → Resources).
-
-> **Note:** Docker Desktop must be running whenever you use MDEMG. It does not auto-start by default. To enable auto-start: Docker Desktop menu bar icon → Settings → General → "Start Docker Desktop when you sign in to your computer."
-
-### 4. OpenAI API Key (recommended) or Ollama
-
-An embedding provider powers semantic search, recall, consolidation naming, and SME consulting. Without one, these features run in degraded mode (no results or generic fallbacks).
-
-**Option A — OpenAI (recommended):**
-1. Sign up at [platform.openai.com](https://platform.openai.com)
-2. Create an API key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-3. You'll configure this key during `mdemg init`, or set it manually:
-   ```bash
-   echo 'OPENAI_API_KEY=sk-...' >> .env
-   ```
-
-**Option B — Ollama (local-only, no API key needed):**
-1. Download from [ollama.com/download/mac](https://ollama.com/download/mac) or:
-   ```bash
-   brew install ollama
-   ```
-2. Pull a compatible embedding model (~4.9 GB):
-   ```bash
-   ollama pull qwen3-embedding:8b
-   ```
-3. Verify it's running:
-   ```bash
-   ollama list
-   # Should show qwen3-embedding:8b in the list
-   ```
-
-> **Dimension note:** MDEMG requires 3072-dimension embeddings. `qwen3-embedding:8b` produces 4096 dimensions which are automatically truncated to 3072 via MRL. Models with fewer than 3072 native dimensions (e.g., `nomic-embed-text` at 768, `mxbai-embed-large` at 1024) are **incompatible** and will cause vector operations to fail. Run `mdemg embeddings check` after setup to verify.
-
-**Option C — Skip (degraded mode):**
-You can run MDEMG without an embedding provider. Ingestion, observation storage, consolidation structure, and most API endpoints will work. Semantic recall and LLM-powered naming will be unavailable or return empty results.
-
-### 5. Git (optional but recommended)
-
-Required for git hooks, incremental ingest (`--since`), and `mdemg hooks install`. Most macOS systems have Git pre-installed via Xcode Command Line Tools.
-
-```bash
-# Check if Git is installed
-git --version
-# If "command not found", install Xcode Command Line Tools:
-xcode-select --install
-```
-
-### Prerequisites Checklist
-
-| # | Requirement | How to verify |
-|---|-------------|---------------|
-| 1 | macOS 12+ | `sw_vers` → ProductVersion ≥ 12.0 |
-| 2 | Homebrew installed | `brew --version` returns a version |
-| 3 | Docker Desktop installed and running | `docker info` succeeds without errors |
-| 4 | OpenAI API key or Ollama (optional) | `echo $OPENAI_API_KEY` is set, or `ollama list` shows models |
-| 5 | Git installed (optional) | `git --version` returns a version |
+An internal guidance system that surfaces constraints, suggestions, and warnings during retrieval. Jiminy tracks whether its guidance is followed, ignored, or contradicted — and adjusts confidence accordingly.
 
 ---
 
-## Installation
+## Key Features
 
-```bash
-brew tap reh3376/mdemg
-brew install mdemg
+**Memory & Retrieval**
+- Hybrid retrieval: vector similarity + BM25 keyword search + graph traversal (configurable hop depth)
+- Conversation memory with session resume, observation tracking, and temporal queries
+- Multi-space isolation — separate knowledge graphs per project, exportable and portable
+
+**Ingestion**
+- 8 ingestion methods: codebase scan, file watcher, git hooks, Claude Code memory files, Linear tickets, web scraper, webhooks, direct API
+- Tree-sitter symbol extraction for 15+ languages
+- Incremental ingest with content hashing (only changed files re-processed)
+
+**Consolidation**
+- Automatic clustering via graph convolution at each layer boundary
+- Temporal decay on learning edges — stale connections weaken naturally
+- Pruning of weak edges and tombstoning of orphan nodes
+
+**Integrations**
+- **MCP server** for IDE integration (VS Code, Cursor, Claude Code)
+- **Claude Code synergy** — token optimization, buffer health monitoring, memory file bridging
+- **Grafana dashboards** for Jiminy, RSIC, Neo4j, and training metrics
+- **Plugin system** with manifest-based scaffolding (INGESTION, REASONING, APE types)
+
+**Operations**
+- Docker Compose deployment (5 services: Neo4j, TimescaleDB, MDEMG server, neural sidecar, Grafana)
+- Browser dashboard at `/ui/` with 9 tabs (Status, Memory, Learning, Config, Logs, RSIC, Plugins, Features, Backups)
+- OS-level service management (`mdemg service install` for launchd/systemd)
+- Self-update with SHA-256 verification (`mdemg upgrade`, `mdemg upgrade --edge`)
+- Training data collection via TimescaleDB for fine-tuning pipelines
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                   CLI (mdemg)                   │
+├─────────────────────────────────────────────────┤
+│              HTTP API (40+ endpoints)           │
+├──────────┬──────────┬──────────┬────────────────┤
+│ Retrieval│ Hidden   │  RSIC    │    Jiminy      │
+│ Pipeline │ Layers   │  Engine  │  Inner Voice   │
+├──────────┴──────────┴──────────┴────────────────┤
+│          Neo4j (knowledge graph)                │
+│          TimescaleDB (training data)            │
+│          Grafana (observability)                │
+│          Neural Sidecar (background tasks)      │
+└─────────────────────────────────────────────────┘
 ```
 
-**Verify the installation:**
+---
 
-```bash
-mdemg version
-```
+## Supported Platforms
 
-**Expected output:**
+| Platform | Architecture | Install method |
+|----------|-------------|----------------|
+| macOS 12+ | Apple Silicon (arm64) | `brew install mdemg` |
+| Linux | x86_64, arm64 | [Install script](https://github.com/reh3376/mdemg/blob/main/scripts/install.sh) |
+| Windows | WSL2 | [Install script](https://github.com/reh3376/mdemg/blob/main/scripts/install.sh) (inside WSL2) |
 
-```
-mdemg v0.4.x
-  commit:  <short-hash>
-  built:   <date>
-  go:      go1.24.x
-  os/arch: darwin/arm64    # or darwin/amd64 on Intel
-```
-
-If `mdemg: command not found`, close and reopen your terminal, then try again. If it still fails:
-
-```bash
-# Check if the binary exists
-ls $(brew --prefix)/bin/mdemg
-
-# If it exists but isn't found, ensure Homebrew's bin is on your PATH:
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-source ~/.zprofile
-```
+All platforms require Docker Desktop (or Docker Engine on Linux) for the service stack.
 
 ---
 
 ## Quick Start
 
-Use the step-by-step flow to verify each component individually and catch issues early.
-
-**Step 1 — Initialize and start all services:**
-
 ```bash
-cd ~/your-project    # or any directory you want to use with MDEMG
-mdemg init           # Interactive wizard — press Enter to accept defaults
+# macOS
+brew tap reh3376/mdemg && brew install mdemg
+
+# Linux / WSL2
+curl -fsSL https://raw.githubusercontent.com/reh3376/mdemg/main/scripts/install.sh | bash
 ```
 
-Expected: generates `.env` with port assignments, `.mdemg/config.yaml`, and `.mdemgignore`. Runs `docker compose up -d` to start 5 services (Neo4j, TimescaleDB, MDEMG server, neural sidecar, Grafana). First run pulls Docker images (~2 GB total).
-
-Verify:
-
 ```bash
-docker compose ps    # All 5 services should show "running"
+cd ~/your-project
+mdemg init           # Interactive wizard — generates .env, starts 5 Docker services
+mdemg ingest --path . # Ingest codebase into the knowledge graph
+open http://localhost:9999/ui/  # Browser dashboard
 ```
 
-For non-interactive setup with all defaults:
-
-```bash
-mdemg init --quick
-```
-
-**Step 2 — Verify services are healthy:**
-
-```bash
-mdemg status
-curl -s http://localhost:9999/healthz | python3 -m json.tool
-# Open the browser dashboard
-open http://localhost:9999/ui/
-```
-
-**Step 3 — Ingest a codebase:**
-
-```bash
-mdemg ingest --path .
-```
-
-Expected: scans the directory, extracts code symbols and content, and stores them as observations in the knowledge graph. Output shows files processed and observations created.
-
-**Verify everything is running:**
-
-```bash
-mdemg status
-```
+For detailed installation, prerequisites, and verification steps, see the [Beta Testing Guide](mdemg_beta_testing.md).
 
 ---
 
-## Set Up a Test Project
+## CLI Overview
 
-If you are beta testing or trying MDEMG for the first time, create a dedicated test directory:
+MDEMG ships a single binary with command groups for every subsystem:
 
-```bash
-mkdir -p ~/mdemg-test && cd ~/mdemg-test
-git init
-git config user.email "tester@example.com"
-git config user.name "Beta Tester"
+| Group | Commands | Purpose |
+|-------|----------|---------|
+| Core | `init`, `status`, `version`, `upgrade`, `teardown` | Setup, health, updates |
+| Server | `start`, `stop`, `restart`, `serve`, `service` | Server lifecycle |
+| Memory | `ingest`, `ingest-claude-md`, `consolidate`, `watch`, `prune`, `decay` | Data pipeline |
+| Database | `db`, `tsdb` | Neo4j and TimescaleDB management |
+| Config | `config show`, `config validate`, `config set-secret` | Configuration and secrets |
+| Spaces | `space list`, `space export`, `space import`, `space copy` | Multi-space management |
+| Hooks | `hooks install`, `hooks uninstall`, `hooks list` | Git integration |
+| Sidecar | `sidecar` (13 subcommands) | Neural sidecar lifecycle |
+| Synergy | `synergy status`, `synergy check`, `synergy migrate` | Claude Code optimization |
+| Data | `data status`, `data audit`, `data export` | Training data management |
+| Plugins | `plugin list`, `plugin install` | Plugin management |
+| Tools | `extract-symbols`, `embeddings check`, `mcp`, `demo` | Utilities |
 
-# Create sample files for ingestion
-cat > main.go << 'EOF'
-package main
-
-import "fmt"
-
-func main() {
-    fmt.Println("Hello from MDEMG beta test")
-}
-EOF
-
-git add . && git commit -m "initial commit"
-```
-
-Then run through the Quick Start steps from within this directory:
-
-```bash
-mdemg init --quick
-mdemg ingest --path .
-```
+Run `mdemg --help` or `mdemg <command> --help` for full usage. See the [CLI Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/cli-reference.md) for complete documentation.
 
 ---
 
-## Verify Core Functionality
+## API
 
-After completing the Quick Start, verify these core features work. Run each command and check the expected output.
+The MDEMG server exposes 40+ HTTP endpoints organized into these groups:
 
-### Configuration
+- **Health** — `/healthz`, `/readyz`
+- **Memory** — `/v1/memory/retrieve`, `/v1/memory/ingest`, `/v1/memory/consolidate`, `/v1/memory/stats`
+- **Conversation** — `/v1/conversation/observe`, `/v1/conversation/recall`, `/v1/conversation/resume`
+- **Learning** — Edge management, co-activation tracking, decay
+- **Jiminy** — Guidance, constraint tracking, escalation
+- **RSIC** — Self-improvement cycles, health metrics
+- **Spaces** — Multi-space CRUD, export/import
+- **Plugins** — Registry, lifecycle management
 
-```bash
-# Display effective config with source annotations (yaml/env/default)
-mdemg config show
-
-# Validate config syntax and probe Neo4j/embedding connectivity
-mdemg config validate
-# Expected: reports Neo4j reachable, embedding provider status
-```
-
-### Embedding provider
-
-```bash
-mdemg embeddings check
-# With OpenAI: reports provider, model (text-embedding-3-large), dimensions (3072)
-# With Ollama: reports provider, model, dimensions
-# Without provider: reports "no embedding provider configured" — this is OK
-```
-
-### Ingest and observe
-
-```bash
-# Ingest the test project
-mdemg ingest --path . --space-id test
-
-# Create a manual observation via API
-curl -s -X POST http://localhost:9999/v1/conversation/observe \
-  -H "Content-Type: application/json" \
-  -d '{"space_id":"test","session_id":"test-session","content":"Test observation from macOS beta","obs_type":"learning"}'
-# Expected: JSON with "node_id" and "status" fields
-```
-
-### Recall (requires embedding provider)
-
-```bash
-curl -s -X POST http://localhost:9999/v1/conversation/recall \
-  -H "Content-Type: application/json" \
-  -d '{"space_id":"test","query":"What was tested?","top_k":5}'
-# Expected: returns relevant observations ranked by semantic similarity
-# Without embedding provider: returns empty or degraded results — this is expected
-```
-
-### Resume session
-
-```bash
-curl -s -X POST http://localhost:9999/v1/conversation/resume \
-  -H "Content-Type: application/json" \
-  -d '{"space_id":"test","session_id":"test-session","max_observations":10}'
-# Expected: returns previously observed content from the session
-```
-
-### Git hooks (optional — requires Git)
-
-```bash
-# Install post-commit hook for auto-ingestion
-mdemg hooks install --space-id test
-
-# Verify
-mdemg hooks list
-# Expected: shows post-commit hook installed
-
-# Make a commit — hook triggers background ingest
-echo "// hook test" >> main.go
-git add . && git commit -m "hook test"
-# Check server output or logs for ingest activity
-```
-
-### Space management
-
-```bash
-mdemg space list
-# Expected: lists all spaces including "test"
-```
-
----
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `mdemg init` | Interactive setup wizard (or `--defaults` / `--quick`) |
-| `mdemg version` | Print version, commit, build date |
-| `mdemg start` | Start server in background (daemon mode) |
-| `mdemg stop` | Stop the running server |
-| `mdemg restart` | Restart the server |
-| `mdemg status` | Show server, database, and embedding status |
-| `mdemg serve` | Run server in foreground (development) |
-| `mdemg db start` | Start Neo4j container (deprecated — use `docker compose up -d neo4j`) |
-| `mdemg db stop` | Stop Neo4j container (deprecated — use `docker compose stop neo4j`) |
-| `mdemg db status` | Show container and schema status |
-| `mdemg db migrate` | Apply pending schema migrations |
-| `mdemg db shell` | Open interactive cypher-shell |
-| `mdemg db backup` | Trigger, list, or configure backups |
-| `mdemg tsdb` | TimescaleDB management (start, stop, status, migrate, shell, stats, backup) |
-| `mdemg ingest` | Ingest a codebase into the knowledge graph |
-| `mdemg ingest-claude-md` | Ingest Claude Code .md memory files |
-| `mdemg consolidate` | Run hidden layer clustering and consolidation |
-| `mdemg watch` | Watch a directory and auto-ingest on changes |
-| `mdemg extract-symbols` | Extract code symbols via tree-sitter |
-| `mdemg embeddings check` | Verify embedding provider connectivity |
-| `mdemg config show` | Display effective configuration with sources |
-| `mdemg config validate` | Validate config syntax and probe connectivity |
-| `mdemg config set-secret` | Store a secret in the system keychain |
-| `mdemg config get-secret` | Retrieve a secret from the system keychain |
-| `mdemg config list-secrets` | List known secrets and their keychain status |
-| `mdemg hooks install` | Install git post-commit hooks for auto-ingestion |
-| `mdemg hooks uninstall` | Remove installed git hooks |
-| `mdemg hooks list` | List installed hooks and their status |
-| `mdemg menubar` | Manage menu bar companion app (start/stop/restart/status) |
-| `mdemg decay` | Apply temporal decay to learning edges |
-| `mdemg prune` | Prune weak edges, tombstone orphans |
-| `mdemg sidecar` | Sidecar lifecycle management (13 subcommands) |
-| `mdemg synergy` | Claude Code ↔ MDEMG synergy optimization |
-| `mdemg data` | Training data collection and management |
-| `mdemg mcp` | Run MCP server for IDE integration |
-| `mdemg space` | Manage memory spaces (list, export, import, copy, delete, rename, info) |
-| `mdemg service` | OS-level background service management (install, uninstall, status, restart, logs) |
-| `mdemg plugin` | Manage plugins |
-| `mdemg demo` | Run interactive demo |
-| `mdemg upgrade` | Self-update to the latest release (`--edge` for edge builds). `mdemg update` is an alias |
-| `mdemg teardown` | Remove MDEMG from a project (config, hooks, services) |
-
-Use `mdemg <command> --help` for full flag details on any command.
-
-For complete reference documentation, see the [CLI Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/cli-reference.md).
+See the [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md) for all endpoints with request/response shapes and curl examples.
 
 ---
 
@@ -376,12 +173,14 @@ For complete reference documentation, see the [CLI Reference](https://github.com
 
 | Guide | What it covers |
 |-------|---------------|
+| [Beta Testing Guide](mdemg_beta_testing.md) | Installation, prerequisites, step-by-step verification (59 tests across 6 tiers) |
 | [CLI Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/cli-reference.md) | All commands, flags, defaults, examples, environment variables |
 | [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md) | Every HTTP endpoint with request/response shapes and curl examples |
 | [CMS & RSIC Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/cms-rsic-guide.md) | Conversation memory, observation types, surprise scoring, self-improvement cycles |
 | [Ingestion Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/ingestion-guide.md) | All 8 ingestion methods — codebase, scraper, Linear, webhooks, file watcher, API |
 | [Ingest Performance](https://github.com/reh3376/mdemg/blob/main/docs/guides/ingest-performance.md) | Speed presets, tuning flags, and performance tips for codebase ingestion |
 | [Docker Deployment](https://github.com/reh3376/mdemg/blob/main/docs/user/quickstart-docker.md) | Docker Compose setup, port configuration, service management |
+| [Changelog](CHANGELOG.md) | Release history from v0.1.0 to current |
 
 ---
 
@@ -390,267 +189,14 @@ For complete reference documentation, see the [CLI Reference](https://github.com
 Priority chain (lowest to highest):
 
 ```
-defaults → .mdemg/config.yaml → keychain → .env → environment variables → CLI flags
+defaults → .mdemg/config.yaml → system keychain → .env → environment variables → CLI flags
 ```
 
-> In Docker Compose deployments (the default), `mdemg init` generates a `.env` file with all port assignments and service credentials. This is the primary configuration file for Docker deployments.
-
-### View and validate
+`mdemg init` generates both `.mdemg/config.yaml` and `.env` with all port assignments and service credentials. In Docker Compose deployments, `.env` is the primary configuration file.
 
 ```bash
-# View effective config with source annotations
-mdemg config show
-# Add --json for machine-readable output
-mdemg config show --json
-
-# Validate syntax and probe connectivity
-mdemg config validate
-```
-
-### Config file
-
-Created by `mdemg init` at `.mdemg/config.yaml`. Example:
-
-```yaml
-server:
-  port: 9999
-neo4j:
-  uri: bolt://localhost:7687
-  user: neo4j
-  password: mdemg-dev
-embeddings:
-  provider: openai           # or "ollama"
-  model: text-embedding-3-large
-```
-
-### Secrets
-
-Secrets should not be stored in `config.yaml`. Use one of these approaches:
-
-**Option A — `.env` file (recommended for development):**
-
-```bash
-# Create .env in your project root (this file is gitignored by .mdemgignore)
-cat > .env << 'EOF'
-OPENAI_API_KEY=sk-...
-NEO4J_PASS=your-password
-EOF
-```
-
-**Option B — System keychain (recommended for shared machines):**
-
-```bash
-mdemg config set-secret OPENAI_API_KEY sk-...
-mdemg config set-secret NEO4J_PASS your-password
-
-# Verify
-mdemg config list-secrets
-mdemg config get-secret OPENAI_API_KEY
-```
-
-**Option C — Environment variables:**
-
-```bash
-export OPENAI_API_KEY=sk-...
-# Add to ~/.zshrc or ~/.bash_profile to persist across sessions
-```
-
----
-
-## Troubleshooting
-
-### Docker Compose services not starting
-
-```bash
-# Check service status
-docker compose ps
-docker compose logs    # View all service logs
-
-# If a specific service is failing:
-docker compose logs mdemg      # MDEMG server logs
-docker compose logs neo4j      # Neo4j logs
-docker compose logs timescaledb # TimescaleDB logs
-
-# Restart all services
-docker compose restart
-
-# Nuclear option — recreate everything
-docker compose down -v && mdemg init --quick
-```
-
-### `mdemg: command not found` after install
-
-```bash
-# Close and reopen terminal, then:
-mdemg version
-
-# If still not found, check that Homebrew's bin is on PATH:
-echo $PATH | tr ':' '\n' | grep -i brew
-# Should include /opt/homebrew/bin (Apple Silicon) or /usr/local/bin (Intel)
-
-# Fix for Apple Silicon:
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-source ~/.zprofile
-```
-
-### Docker not running
-
-```bash
-docker info
-# If error: "Cannot connect to the Docker daemon"
-# → Open Docker Desktop from /Applications/Docker.app
-# → Wait for menu bar icon to stop animating
-# → Then retry: docker info
-```
-
-### Neo4j won't start
-
-```bash
-# In Docker Compose mode (default):
-docker compose logs neo4j
-docker compose restart neo4j
-
-# In native/legacy mode:
-mdemg db status
-docker ps -a --filter "name=mdemg-neo4j"
-
-# View container logs
-docker logs mdemg-neo4j-$(basename $(pwd))
-
-# Common causes:
-# 1. Docker Desktop not running → start it first
-# 2. Port 7687 already in use → check with: lsof -i :7687
-# 3. Previous container in bad state → docker compose down -v && mdemg init --quick
-```
-
-### Neo4j port conflict
-
-```bash
-# Check what's using port 7687
-lsof -i :7687
-
-# Start Neo4j on a different port
-mdemg db start --port 7688
-```
-
-### Server won't start
-
-```bash
-# Check server logs
-cat .mdemg/logs/mdemg.log
-
-# Check if something else is using port 9999
-lsof -i :9999
-
-# Try foreground mode to see errors directly
-mdemg serve --auto-migrate
-```
-
-### Missing OpenAI key
-
-```bash
-# Check if key is set
-echo $OPENAI_API_KEY
-
-# Set it in .env
-echo 'OPENAI_API_KEY=sk-...' >> .env
-
-# Or via keychain
-mdemg config set-secret OPENAI_API_KEY sk-...
-
-# Restart server to pick up new config
-mdemg restart
-```
-
-### Embedding check fails
-
-```bash
-mdemg embeddings check
-# If it reports connection errors:
-# 1. Check your API key: echo $OPENAI_API_KEY
-# 2. Check network: curl -s https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY" | head -5
-# 3. If using Ollama: verify it's running with `ollama list`
-```
-
-### Migrations fail
-
-```bash
-# Check current schema version
-mdemg db status
-
-# Try running migrations explicitly
-mdemg db migrate
-
-# If migrations report errors, check Neo4j connectivity
-mdemg config validate
-```
-
-### Health check returns errors
-
-```bash
-curl -s http://localhost:9999/healthz | python3 -m json.tool
-# Expected: {"status":"ok","version":"...","commit":"..."}
-
-curl -s http://localhost:9999/readyz | python3 -m json.tool
-
-# If server is not responding at all:
-mdemg status
-# If not running: docker compose up -d
-```
-
----
-
-## Upgrading
-
-```bash
-brew update && brew upgrade mdemg
-
-# Verify new version
-mdemg version
-
-# Apply any new database migrations
-mdemg restart
-mdemg db migrate
-```
-
-### Self-update (v0.4.0+)
-
-```bash
-mdemg upgrade            # Update to latest stable release
-mdemg upgrade --edge     # Update to latest edge build (main branch)
-mdemg upgrade --dry-run  # Check for updates without installing
-```
-
-The `upgrade` command downloads the new binary, verifies its SHA-256 checksum, and replaces the current executable. `mdemg update` is an alias for `mdemg upgrade`.
-
----
-
-## Uninstall
-
-```bash
-# 1. Remove MDEMG config, hooks, and stop services
-mdemg teardown --yes
-
-# 2. Remove containers and volumes (deletes all stored data)
-docker compose down -v
-
-# 3. Uninstall the CLI and remove the tap
-brew uninstall mdemg
-brew untap reh3376/mdemg
-
-# 4. (Optional) Remove config and data directory
-rm -rf .mdemg
-```
-
----
-
-## Man Pages
-
-```bash
-man mdemg
-man mdemg-init
-man mdemg-ingest
-# Full list: ls $(brew --prefix)/share/man/man1/mdemg*
+mdemg config show       # View effective config with source annotations
+mdemg config validate   # Validate syntax and probe connectivity
 ```
 
 ---
@@ -658,5 +204,6 @@ man mdemg-ingest
 ## Links
 
 - [Source Code](https://github.com/reh3376/mdemg)
+- [Releases](https://github.com/reh3376/mdemg/releases)
 - [Docker Deployment Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/quickstart-docker.md)
 - [Issues](https://github.com/reh3376/mdemg/issues)
