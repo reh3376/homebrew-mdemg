@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-04-02
+
+### Added
+- Docker compose file embedded in binary — `mdemg init` works without repo checkout
+- `mdemg data export-auto` for automated training data export with retention management
+- `mdemg data check --pre-campaign` with 8 automated validation checks
+- Training export LaunchAgent (24h timer via `mdemg service install`)
+- vllm-mlx setup guide for local Qwen3-30B-A3B inference
+- Full LoRA training pipeline: `train_ft.py`, `evaluate_ft.py`, `regression_gate.py`, `quantize_deploy.py`
+- Teacher distillation (`teacher_distill.py`) for synthetic data generation
+- 21 GRPO reward functions (`reward_functions.py`) for reinforcement learning
+- `mlx-lm` optional dependency in `[lora]` extras group
+
+### Fixed
+- `mdemg init` fails for Homebrew users (docker-compose.yml missing from tarball)
+- `mdemg tsdb start/stop` fails outside repo checkout
+
+## [0.5.0] - 2026-04-02
+
+### Added
+- QueryClassifier wired into retrieval pipeline (`QUERY_CLASSIFY_ENABLED`)
+- `session_id` flows from API requests into training data records
+- Campaign task activation guide
+
+## [0.4.2] - 2026-04-01
+
+### Added
+- Instance ID on all training tables for multi-instance isolation
+- System RAM detection + Neo4j memory tiering during init
+- Automatic `space_id` and `instance_id` backfill on server startup
+
+### Fixed
+- All 16 LLM consumers wrote empty `space_id`
+- Neo4j defaults consuming 5GB+ on 32GB machines
+
+## [0.4.1] - 2026-03-31
+
+### Added
+- Per-field privacy skip patterns for multi-table export
+- Schema version 8 (instance_id migration)
+
 ## [0.4.0] - 2026-03-31
 
 ### Added
@@ -81,7 +122,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Support for OpenAI and Ollama embedding providers
 - Git hooks for auto-ingestion on commits
 
-[Unreleased]: https://github.com/reh3376/homebrew-mdemg/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/reh3376/homebrew-mdemg/compare/v0.4.2...v0.5.0
+[0.4.2]: https://github.com/reh3376/homebrew-mdemg/compare/v0.4.1...v0.4.2
+[0.4.1]: https://github.com/reh3376/homebrew-mdemg/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/reh3376/homebrew-mdemg/compare/v0.3.4...v0.4.0
 [0.3.4]: https://github.com/reh3376/homebrew-mdemg/compare/v0.3.0...v0.3.4
 [0.3.0]: https://github.com/reh3376/homebrew-mdemg/compare/v0.2.15...v0.3.0
