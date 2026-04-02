@@ -5,14 +5,14 @@
 class Mdemg < Formula
   desc "Multi-Dimensional Emergent Memory Graph — cognitive substrate for AI agents"
   homepage "https://github.com/reh3376/mdemg"
-  version "0.5.0"
+  version "0.5.1"
 
   depends_on "docker" => :optional
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.5.0/mdemg_0.5.0_darwin_amd64.tar.gz"
-      sha256 "70d7fd568bb6b0ca7f0a9bfc56e99f0c72ccb8e4e4cfefcf552a04b34637ce54"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.5.1/mdemg_0.5.1_darwin_amd64.tar.gz"
+      sha256 "c58bf3a5a48bd39fb6e9c21ee15d16930415ca4bfb627f91d022583c091f0c45"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -25,11 +25,13 @@ class Mdemg < Formula
         obsdir = share/"mdemg/plugins/obsidian-module"
         obsdir.install "obsidian-module"
         obsdir.install "plugins/obsidian-module/manifest.json"
+        # Docker Compose file (embedded in binary, also available for inspection)
+        share.install "docker-compose.yml" => "mdemg/docker-compose.yml"
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.5.0/mdemg_0.5.0_darwin_arm64.tar.gz"
-      sha256 "2550580ce1c3af549be294927845d6a4e9f71cc31cdd4535c7e9c15c58b684ad"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.5.1/mdemg_0.5.1_darwin_arm64.tar.gz"
+      sha256 "afb9e13e1cbc89fe98d6b157b33994e9c89150f5c20cd3e48972173721d10072"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -42,14 +44,16 @@ class Mdemg < Formula
         obsdir = share/"mdemg/plugins/obsidian-module"
         obsdir.install "obsidian-module"
         obsdir.install "plugins/obsidian-module/manifest.json"
+        # Docker Compose file (embedded in binary, also available for inspection)
+        share.install "docker-compose.yml" => "mdemg/docker-compose.yml"
       end
     end
   end
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.5.0/mdemg_0.5.0_linux_amd64.tar.gz"
-      sha256 "56b6d2db85c2d605d8c157aa3b76d4de71f1dc3ff75b36187136a9b85570867b"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.5.1/mdemg_0.5.1_linux_amd64.tar.gz"
+      sha256 "a6269e0a769b22fcc7a3053af987a782984103e56915ddd677148cf607df9403"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -61,11 +65,13 @@ class Mdemg < Formula
         obsdir = share/"mdemg/plugins/obsidian-module"
         obsdir.install "obsidian-module"
         obsdir.install "plugins/obsidian-module/manifest.json"
+        # Docker Compose file (embedded in binary, also available for inspection)
+        share.install "docker-compose.yml" => "mdemg/docker-compose.yml"
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.5.0/mdemg_0.5.0_linux_arm64.tar.gz"
-      sha256 "64c87486e37bfb08509ddc51638bd1995ce6c8b8315a16bb06f42ef006da90c0"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.5.1/mdemg_0.5.1_linux_arm64.tar.gz"
+      sha256 "d1f95bbeb841d6d1f4c924bc1c826609d943c7b89fbd77f4bcd81b5783b76baa"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -77,6 +83,8 @@ class Mdemg < Formula
         obsdir = share/"mdemg/plugins/obsidian-module"
         obsdir.install "obsidian-module"
         obsdir.install "plugins/obsidian-module/manifest.json"
+        # Docker Compose file (embedded in binary, also available for inspection)
+        share.install "docker-compose.yml" => "mdemg/docker-compose.yml"
       end
     end
   end
