@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-04-03
+
+### Added
+- `WithSpaceID` context helper — correct TSDB space attribution for all retrieval LLM consumers
+- Campaign env vars in compose template (`QUERY_CLASSIFY_ENABLED`, `INTENT_ENABLED`, `JIMINY_ENABLED`, `EMERGENCE_ENABLED`, `LLM_INTERACTION_LOGGING`)
+- Campaign task activation prompt during interactive `mdemg init`
+- 19-test automated live validation script (`scripts/live_validation.py`)
+- Weekly cron safety net for Docker image publishing
+
+### Fixed
+- TSDB schema version stuck at 7 (migration 010 corrects to 10)
+
+## [0.5.2] - 2026-04-03
+
+### Added
+- `AUTO_MIGRATE` env var for unified Neo4j + TSDB migration in Docker
+- Neural-sidecar Docker image published to GHCR
+- `docker-publish.yml` `workflow_run` trigger from Release workflow
+- LaunchAgent templates embedded in binary
+- `session_id` field on `/v1/memory/retrieve` and `/v1/memory/consult`
+
+### Fixed
+- neural-sidecar `build: ./neural` breaks non-repo installs
+- Fresh Neo4j crash-loops (no AUTO_MIGRATE for first-start schema)
+- Docker Publish CI stuck at v0.3.4
+- `mdemg data` commands don't load `.env`
+- `mdemg service install` fails for Homebrew users
+- session_id, space_id, and recorder initialization order in TSDB pipeline
+- Export instance_id auto-detection mismatch (silent 0 rows)
+
 ## [0.5.1] - 2026-04-02
 
 ### Added
@@ -122,7 +152,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Support for OpenAI and Ollama embedding providers
 - Git hooks for auto-ingestion on commits
 
-[Unreleased]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/reh3376/homebrew-mdemg/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/reh3376/homebrew-mdemg/compare/v0.4.1...v0.4.2
