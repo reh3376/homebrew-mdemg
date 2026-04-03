@@ -1068,33 +1068,37 @@ cd ~/mdemg-test
 # Preview what would be removed
 mdemg teardown --dry-run
 
-# Execute teardown (stops services, removes hooks, cleans config)
-mdemg teardown --yes
+# Execute teardown WITH data export (Neo4j graph + TSDB backup)
+mdemg teardown --export --yes
 ```
 
-**Expected:** Dry run lists all artifacts that would be removed. Full teardown:
-1. Detects `docker-compose.yml` and runs `docker compose down -v` (stops all 5 services, removes volumes)
-2. Stops native MDEMG server (if running)
-3. Deletes Neo4j space data
-4. Removes keyring secrets
-5. Uninstalls git hooks
-6. Cleans MCP/IDE configs
-7. Backs up and removes `.mdemg/` directory
-8. Removes `.mdemgignore`
-9. Deregisters from companion apps
-10. Cleans Claude settings
+**Expected:** Dry run lists all artifacts that would be removed. Full teardown with `--export`:
+1. Exports Neo4j graph data to `{space}-teardown-{timestamp}.mdemg`
+2. Backs up TSDB via `pg_dump` to `.mdemg/backups/tsdb/tsdb-bk-{timestamp}.dump`
+3. Detects `docker-compose.yml` and runs `docker compose down -v` (stops all 5 services, removes volumes)
+4. Stops native MDEMG server (if running)
+5. Deletes Neo4j space data
+6. Removes keyring secrets
+7. Uninstalls git hooks
+8. Cleans MCP/IDE configs
+9. Backs up `.mdemg/` → `.mdemg-backup-{timestamp}/` (TSDB backup preserved inside)
+10. Removes `.mdemgignore`
+11. Deregisters from companion apps
+12. Cleans Claude settings
 
-Look for "Docker Compose deployment detected" in the output to confirm compose-aware teardown.
+Look for "Phase 0b: Backing up TSDB" and "Docker Compose deployment detected" in the output.
 
 ```bash
-# Verify cleanup
+# Verify TSDB backup preserved
+ls .mdemg-backup-*/backups/tsdb/*.dump && echo "OK: TSDB backup preserved" || echo "FAIL: no TSDB backup"
+
+# Verify Docker cleanup
 docker ps --format "{{.Names}}" | grep mdemg-test && echo "FAIL: containers still running" || echo "OK: containers removed"
 docker volume ls --format "{{.Name}}" | grep mdemg-test && echo "FAIL: volumes remain" || echo "OK: volumes removed"
 ls .mdemg 2>/dev/null && echo "FAIL: .mdemg still exists" || echo "OK: .mdemg removed"
-mdemg hooks list 2>/dev/null || echo "OK: hooks check (expected to fail — no .mdemg)"
 ```
 
-- [ ] **PASS** — dry run lists artifacts, teardown removes all MDEMG artifacts including Docker Compose services
+- [ ] **PASS** — TSDB backup created, Docker services stopped, all artifacts removed
 
 ---
 
