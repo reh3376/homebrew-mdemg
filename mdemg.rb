@@ -12,7 +12,7 @@ class Mdemg < Formula
   on_macos do
     if Hardware::CPU.intel?
       url "https://github.com/reh3376/mdemg/releases/download/v0.5.3/mdemg_0.5.3_darwin_amd64.tar.gz"
-      sha256 "f34d53167c77c62a425c9232d3968f04ec0daee810f534153bd77777ed9cc645"
+      sha256 "ead77780da588f3e5c3342931974498df184872f4e454862b3ead234ffeb8dd5"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -31,7 +31,7 @@ class Mdemg < Formula
     end
     if Hardware::CPU.arm?
       url "https://github.com/reh3376/mdemg/releases/download/v0.5.3/mdemg_0.5.3_darwin_arm64.tar.gz"
-      sha256 "f46dc52c28c95522201716986fc33488482b38ef646b6310a4dbd5000c054685"
+      sha256 "53d8a7fadbd8a8aca776763bd60a23936de02a904f66bbee43f7e4bb6a276c58"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -53,7 +53,7 @@ class Mdemg < Formula
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
       url "https://github.com/reh3376/mdemg/releases/download/v0.5.3/mdemg_0.5.3_linux_amd64.tar.gz"
-      sha256 "f8d03eff9267fa23d5c848ae915e1f085d2a24f791191f5557ed36159b80e6e9"
+      sha256 "2d69ab265b3777e69ae6463b8cad5a878e7cba528164864a695564c88925e0a7"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -71,7 +71,7 @@ class Mdemg < Formula
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
       url "https://github.com/reh3376/mdemg/releases/download/v0.5.3/mdemg_0.5.3_linux_arm64.tar.gz"
-      sha256 "6d12a299c497b782701ee87f2e7c993d10ff0caf5513199adc22442a63b28a02"
+      sha256 "1cd0303661f0ad10870c4b37532be27e02ea0fa5412b5e9e70de9b7b2de88769"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
