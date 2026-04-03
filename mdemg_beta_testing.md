@@ -1,6 +1,6 @@
 # MDEMG Beta Testing Guide
 
-**Version under test:** v0.4.0 (CLI)
+**Version under test:** v0.5.3 (CLI)
 **Date:** _______________
 **Tester:** _______________
 **Machine specs:** _______________
@@ -19,8 +19,9 @@
 | 4 | Backup & Maintenance | 5 | | | | |
 | 5 | Advanced | 10 | | | | |
 | DC | Docker Compose & New Commands | 8 | | | | |
+| DT | Data Collection & Training | 5 | | | | |
 | M | Menubar App (archived — skip) | 6 | | | | |
-| **Total** | | **59** | | | | |
+| **Total** | | **64** | | | | |
 
 ---
 
@@ -1194,6 +1195,62 @@ Navigate to `http://localhost:9999/ui/` and click through each of the 9 tabs:
 
 ---
 
+## Tier DT: Data Collection & Training (~10 min)
+
+> **Requires:** Docker Compose stack running with TSDB enabled. These tests verify data collection commands added in v0.5.x.
+
+### DT.1: Data Inspect
+
+```bash
+mdemg data inspect --last 5
+```
+
+**Expected:** Displays the 5 most recent training data records (or empty table if no LLM interactions yet). Should not error.
+
+- [ ] **PASS** — command completes without error
+
+### DT.2: Data Stats
+
+```bash
+mdemg data stats
+```
+
+**Expected:** Per-task statistics table showing row counts per event type (llm_interactions, embedding_events, retrieval_events). May show 0 rows on a fresh instance.
+
+- [ ] **PASS** — statistics table renders
+
+### DT.3: Data Quality
+
+```bash
+mdemg data quality
+```
+
+**Expected:** Quality report with metrics per table. Should not error even with empty tables.
+
+- [ ] **PASS** — quality report renders without error
+
+### DT.4: Pre-Campaign Check
+
+```bash
+mdemg data check --pre-campaign
+```
+
+**Expected:** Runs 8 validation checks (schema version, instance ID, TSDB connectivity, etc.). All checks should pass on a properly initialized Docker instance.
+
+- [ ] **PASS** — all 8 checks pass (or clearly documented skip reasons)
+
+### DT.5: Export Auto (Dry Run)
+
+```bash
+mdemg data export-auto --dry-run --space-id $(grep SPACE_ID .env | cut -d= -f2 || echo "default")
+```
+
+**Expected:** Shows what would be exported without creating files. Validates the export-auto pipeline end-to-end.
+
+- [ ] **PASS** — dry run completes, shows export plan
+
+---
+
 ## Tier M: Menubar App (~15 min) — ARCHIVED
 
 > **The mdemg-menubar repository has been archived.** The Browser Dashboard at `http://localhost:9999/ui/` replaces the menubar app for status monitoring and configuration. This tier is preserved for historical reference but **should be skipped** during testing. See Tier DC for the browser dashboard tests instead.
@@ -1392,7 +1449,9 @@ rm -f .mdemg/mdemg.pid
 mdemg start --auto-migrate
 ```
 
-For unattended operation, use `mdemg service install` (recommended) or create a launchd plist manually:
+For unattended operation, use `mdemg service install` (recommended) or create a launchd plist manually.
+
+> **Multi-instance note:** LaunchAgent labels are not instance-scoped. Running `mdemg service install` from a second project directory will overwrite the first instance's LaunchAgent configuration. For multi-instance deployments, rely on Docker Compose's `restart: unless-stopped` policy instead. See the [Multi-Instance Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/multi-instance.md).
 
 ```bash
 cat > ~/Library/LaunchAgents/com.mdemg.server.plist << 'EOF'

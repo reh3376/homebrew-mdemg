@@ -73,6 +73,32 @@ An internal guidance system that surfaces constraints, suggestions, and warnings
 - OS-level service management (`mdemg service install` for launchd/systemd)
 - Self-update with SHA-256 verification (`mdemg upgrade`, `mdemg upgrade --edge`)
 - Training data collection via TimescaleDB for fine-tuning pipelines
+- Multi-instance support — run separate MDEMG stacks per project on one machine
+
+### Training Pipeline
+
+MDEMG includes a complete LoRA fine-tuning pipeline for personalizing local LLMs:
+
+1. **Collect** — LLM interactions recorded to TimescaleDB during normal use
+2. **Export** — `mdemg data export` or automated daily via `mdemg data export-auto`
+3. **Curate** — quality filter, format converter, dataset versioner (privacy-safe, temporal splits)
+4. **Train** — LoRA fine-tuning via MLX on Apple Silicon (`train_ft.py`)
+5. **Evaluate** — per-task scoring against quality metrics (`evaluate_ft.py`)
+6. **Gate** — regression gate prevents deploying worse adapters (`regression_gate.py`)
+7. **Deploy** — fuse adapter + quantize for production inference (`quantize_deploy.py`)
+
+### Collection Campaign
+
+To maximize training data quality, enable task-specific data collection:
+
+```bash
+mdemg init  # Answer "yes" to "Enable training data collection tasks?"
+# Or manually in .env:
+QUERY_CLASSIFY_ENABLED=true
+INTENT_ENABLED=true
+```
+
+Run `mdemg data check --pre-campaign` to verify your instance is configured correctly.
 
 ---
 
@@ -144,7 +170,7 @@ MDEMG ships a single binary with command groups for every subsystem:
 | Hooks | `hooks install`, `hooks uninstall`, `hooks list` | Git integration |
 | Sidecar | `sidecar` (13 subcommands) | Neural sidecar lifecycle |
 | Synergy | `synergy status`, `synergy check`, `synergy migrate` | Claude Code optimization |
-| Data | `data status`, `data audit`, `data export` | Training data management |
+| Data | `data status`, `data audit`, `data export`, `data export-auto`, `data check`, `data inspect`, `data stats`, `data quality` | Training data management |
 | Plugins | `plugin list`, `plugin install` | Plugin management |
 | Tools | `extract-symbols`, `embeddings check`, `mcp`, `demo` | Utilities |
 
@@ -180,6 +206,7 @@ See the [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api
 | [Ingestion Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/ingestion-guide.md) | All 8 ingestion methods — codebase, scraper, Linear, webhooks, file watcher, API |
 | [Ingest Performance](https://github.com/reh3376/mdemg/blob/main/docs/guides/ingest-performance.md) | Speed presets, tuning flags, and performance tips for codebase ingestion |
 | [Docker Deployment](https://github.com/reh3376/mdemg/blob/main/docs/user/quickstart-docker.md) | Docker Compose setup, port configuration, service management |
+| [Multi-Instance Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/multi-instance.md) | Running multiple MDEMG instances, resource requirements, known limitations |
 | [Changelog](CHANGELOG.md) | Release history from v0.1.0 to current |
 
 ---
