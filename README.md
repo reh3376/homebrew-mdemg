@@ -228,6 +228,54 @@ mdemg config validate   # Validate syntax and probe connectivity
 
 ---
 
+## Uninstall
+
+### Per-Project Teardown
+
+Remove MDEMG from a single project. This stops all Docker Compose services, removes volumes, and cleans up config files:
+
+```bash
+cd /path/to/your/project
+mdemg teardown --yes          # Stops 5 Docker services, removes volumes, cleans config
+```
+
+Add `--keep-data` to preserve the Neo4j graph data, or `--export` to export data before teardown.
+
+### Full System Removal
+
+Remove MDEMG entirely from your machine:
+
+```bash
+# 1. Teardown each project
+cd /path/to/project && mdemg teardown --yes
+
+# 2. Remove LaunchAgents (macOS)
+mdemg service uninstall
+
+# 3. Remove the binary
+brew uninstall mdemg           # Homebrew
+# sudo rm /usr/local/bin/mdemg # Linux
+
+# 4. Remove global config and data (optional)
+rm -rf ~/.mdemg
+```
+
+### Graph Maintenance (Without Uninstalling)
+
+For ongoing graph health without removing MDEMG:
+
+```bash
+mdemg decay --dry-run          # Preview edge decay (temporal weight reduction)
+mdemg decay --dry-run=false    # Apply decay
+
+mdemg prune --dry-run          # Preview pruning (weak edges, orphan nodes)
+mdemg prune --dry-run=false    # Apply pruning
+```
+
+See the [CLI Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/cli-reference.md) for all flags and thresholds.
+
+---
+
 ## Links
 
 - [Source Code](https://github.com/reh3376/mdemg)

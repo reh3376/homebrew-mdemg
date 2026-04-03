@@ -1072,15 +1072,29 @@ mdemg teardown --dry-run
 mdemg teardown --yes
 ```
 
-**Expected:** Dry run lists all artifacts that would be removed. Full teardown stops the server, removes Docker containers/volumes, uninstalls hooks, cleans MCP/IDE configs, and removes `.mdemg/`.
+**Expected:** Dry run lists all artifacts that would be removed. Full teardown:
+1. Detects `docker-compose.yml` and runs `docker compose down -v` (stops all 5 services, removes volumes)
+2. Stops native MDEMG server (if running)
+3. Deletes Neo4j space data
+4. Removes keyring secrets
+5. Uninstalls git hooks
+6. Cleans MCP/IDE configs
+7. Backs up and removes `.mdemg/` directory
+8. Removes `.mdemgignore`
+9. Deregisters from companion apps
+10. Cleans Claude settings
+
+Look for "Docker Compose deployment detected" in the output to confirm compose-aware teardown.
 
 ```bash
 # Verify cleanup
+docker ps --format "{{.Names}}" | grep mdemg-test && echo "FAIL: containers still running" || echo "OK: containers removed"
+docker volume ls --format "{{.Name}}" | grep mdemg-test && echo "FAIL: volumes remain" || echo "OK: volumes removed"
 ls .mdemg 2>/dev/null && echo "FAIL: .mdemg still exists" || echo "OK: .mdemg removed"
 mdemg hooks list 2>/dev/null || echo "OK: hooks check (expected to fail — no .mdemg)"
 ```
 
-- [ ] **PASS** — dry run lists artifacts, teardown removes all MDEMG artifacts
+- [ ] **PASS** — dry run lists artifacts, teardown removes all MDEMG artifacts including Docker Compose services
 
 ---
 
@@ -1394,7 +1408,7 @@ cd ~/mdemg-test
 mdemg teardown --yes
 ```
 
-This single command handles steps 1-6 below automatically: stops the server, removes Docker containers/volumes, uninstalls hooks, cleans MCP/IDE configs, backs up and removes `.mdemg/`.
+This single command handles all cleanup automatically: detects Docker Compose and runs `docker compose down -v` (stops all 5 services, removes volumes), stops the native server, uninstalls hooks, cleans MCP/IDE configs, backs up and removes `.mdemg/`.
 
 ### Manual cleanup (fallback)
 
