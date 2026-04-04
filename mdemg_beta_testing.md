@@ -13,7 +13,7 @@
 
 | Tier | Section | Tests | Pass | Fail | Skip | Notes |
 |------|---------|-------|------|------|------|-------|
-| 1 | Installation & Core | 10 | | | | |
+| 1 | Installation & Core | 11 | | | | |
 | 2 | Ingestion | 10 | | | | |
 | 3 | CMS & RSIC | 10 | | | | |
 | 4 | Backup & Maintenance | 5 | | | | |
@@ -21,7 +21,7 @@
 | DC | Docker Compose & New Commands | 8 | | | | |
 | DT | Data Collection & Training | 5 | | | | |
 | M | Menubar App (archived — skip) | 6 | | | | |
-| **Total** | | **64** | | | | |
+| **Total** | | **65** | | | | |
 
 ---
 
@@ -451,6 +451,19 @@ open http://localhost:9999/ui/
 **Expected:** Dashboard loads in the browser with 9 tabs: Status, Memory, Learning, Config, Logs, RSIC, Plugins, Features, Backups. Verify at least 3 tabs render data or a reasonable empty state.
 
 - [ ] **PASS** — browser dashboard loads, tabs are navigable
+
+---
+
+### T1.11: Upgrade Updates Docker Instances
+
+1. Note current version: `mdemg version`
+2. Note container version: `curl -s http://localhost:$PORT/healthz | python3 -c "import json,sys; print(json.load(sys.stdin)['version'])"`
+3. Run `mdemg upgrade --docker-only`
+4. Verify container version matches: repeat step 2
+
+**Expected:** Container version matches CLI version. Output shows "Updating N running MDEMG Docker instance(s)..." with each project showing "pulling images... restarting... ok".
+
+- [ ] **PASS** — Docker instances updated, version matches
 
 ---
 

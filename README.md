@@ -71,7 +71,7 @@ An internal guidance system that surfaces constraints, suggestions, and warnings
 - Docker Compose deployment (5 services: Neo4j, TimescaleDB, MDEMG server, neural sidecar, Grafana)
 - Browser dashboard at `/ui/` with 9 tabs (Status, Memory, Learning, Config, Logs, RSIC, Plugins, Features, Backups)
 - OS-level service management (`mdemg service install` for launchd/systemd)
-- Self-update with SHA-256 verification (`mdemg upgrade`, `mdemg upgrade --edge`)
+- Self-update with SHA-256 verification (`mdemg upgrade`, `mdemg upgrade --edge`). Automatically updates running Docker instances.
 - Training data collection via TimescaleDB for fine-tuning pipelines
 - Multi-instance support — run separate MDEMG stacks per project on one machine
 
@@ -225,6 +225,34 @@ defaults → .mdemg/config.yaml → system keychain → .env → environment var
 mdemg config show       # View effective config with source annotations
 mdemg config validate   # Validate syntax and probe connectivity
 ```
+
+---
+
+## Upgrading
+
+### Homebrew (recommended)
+
+```bash
+brew upgrade mdemg
+```
+
+This updates the CLI binary and automatically pulls latest Docker images for all running MDEMG instances. No manual `docker compose pull` needed.
+
+### Self-update
+
+```bash
+mdemg upgrade
+```
+
+Same as brew upgrade but downloads directly from GitHub Releases. Also updates running Docker instances.
+
+### Docker instances only
+
+```bash
+mdemg upgrade --docker-only
+```
+
+Updates Docker images and restarts containers without changing the binary.
 
 ---
 
