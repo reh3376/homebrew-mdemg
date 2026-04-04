@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-04-03
+
+### Added
+- Multi-instance deployment guide with resource measurements
+- TSDB backup before teardown (Phase 0b with `--export`)
+- Upgrade automation: Docker instances updated automatically after binary upgrade
+- New flags: `--no-docker`, `--docker-only` for upgrade command
+
+### Fixed
+- `mdemg teardown` doesn't stop Docker Compose services
+- Teardown silently destroys TSDB training data
+
 ## [0.5.3] - 2026-04-03
 
 ### Added

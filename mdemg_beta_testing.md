@@ -1,6 +1,6 @@
 # MDEMG Beta Testing Guide
 
-**Version under test:** v0.5.3 (CLI)
+**Version under test:** v0.5.4 (CLI)
 **Date:** _______________
 **Tester:** _______________
 **Machine specs:** _______________
