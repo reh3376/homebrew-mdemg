@@ -228,6 +228,29 @@ mdemg config validate   # Validate syntax and probe connectivity
 
 ---
 
+## Upgrading to v0.6.0
+
+If upgrading from v0.5.x, run graph repair before restarting to preserve edge weights:
+
+```bash
+brew upgrade mdemg
+mdemg graph repair --space-id <your-space> --dry-run=false
+docker compose up -d
+```
+
+See the full [Upgrade Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/upgrade-guide.md) for details.
+
+### What's New in v0.6.0
+
+- `mdemg graph repair` — weight-preserving SymbolNode dedup + vendor cleanup
+- `mdemg maintenance` — combined decay + prune cycle (schedulable)
+- `mdemg embeddings backfill` — fill missing embeddings
+- Evidence-weighted decay formula with safety cap
+- Self-healing V0023 migration (safe on any graph state)
+- `prune --match-ignore` and `--include-labels` flags
+
+---
+
 ## Upgrading
 
 ### Homebrew (recommended)
@@ -293,11 +316,19 @@ rm -rf ~/.mdemg
 For ongoing graph health without removing MDEMG:
 
 ```bash
-mdemg decay --dry-run          # Preview edge decay (temporal weight reduction)
-mdemg decay --dry-run=false    # Apply decay
+# Combined maintenance cycle (decay + prune)
+mdemg maintenance --space-id <your-space> --dry-run        # Preview
+mdemg maintenance --space-id <your-space> --dry-run=false   # Execute
 
-mdemg prune --dry-run          # Preview pruning (weak edges, orphan nodes)
-mdemg prune --dry-run=false    # Apply pruning
+# Or run individually
+mdemg decay --space-id <your-space> --dry-run=false
+mdemg prune --space-id <your-space> --dry-run=false
+
+# Graph repair (before upgrades or to fix issues)
+mdemg graph repair --space-id <your-space> --dry-run=false
+
+# Fill missing embeddings
+mdemg embeddings backfill --space-id <your-space>
 ```
 
 See the [CLI Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/cli-reference.md) for all flags and thresholds.

@@ -1,6 +1,6 @@
 # MDEMG Beta Testing Guide
 
-**Version under test:** v0.5.4 (CLI)
+**Version under test:** v0.6.0 (CLI)
 **Date:** _______________
 **Tester:** _______________
 **Machine specs:** _______________
@@ -13,15 +13,15 @@
 
 | Tier | Section | Tests | Pass | Fail | Skip | Notes |
 |------|---------|-------|------|------|------|-------|
-| 1 | Installation & Core | 11 | | | | |
+| 1 | Installation & Core | 12 | | | | |
 | 2 | Ingestion | 10 | | | | |
 | 3 | CMS & RSIC | 10 | | | | |
-| 4 | Backup & Maintenance | 5 | | | | |
+| 4 | Backup & Maintenance | 8 | | | | |
 | 5 | Advanced | 10 | | | | |
 | DC | Docker Compose & New Commands | 8 | | | | |
 | DT | Data Collection & Training | 5 | | | | |
 | M | Menubar App (archived — skip) | 6 | | | | |
-| **Total** | | **65** | | | | |
+| **Total** | | **69** | | | | |
 
 ---
 
@@ -467,6 +467,23 @@ open http://localhost:9999/ui/
 
 ---
 
+### T1.12: Upgrade from v0.5.x to v0.6.0
+
+> **Note:** This test validates the upgrade path. If testing a fresh install, skip this test.
+
+1. Start with v0.5.x running: `mdemg version` shows v0.5.x
+2. Run graph repair: `mdemg graph repair --space-id beta-test --dry-run=false`
+3. Upgrade: `brew upgrade mdemg` or `mdemg upgrade`
+4. Restart: `docker compose up -d`
+5. Verify: `mdemg data check --pre-campaign --json` — 0 failures
+
+**Expected:** Graph repair completes with V0023 READY status. After upgrade and restart, V0023 migration applies successfully. Pre-campaign check shows 0 failures.
+
+- [ ] **PASS** — upgrade from v0.5.x to v0.6.0 succeeds
+- [ ] **SKIP** — fresh install (no prior version)
+
+---
+
 ## Tier 2: Ingestion (~20 min)
 
 > **Reference:** [Ingestion Guide](docs/ingestion-guide.md) covers all 8 ingestion methods in detail. [API Reference](docs/api-reference.md#codebase-ingestion-api) has full endpoint documentation.
@@ -904,6 +921,42 @@ mdemg space list
 **Expected:** Lists all spaces including `beta-test`.
 
 - [ ] **PASS** — space list shows beta-test
+
+---
+
+### T4.6: Graph Repair (Dry Run)
+
+```bash
+mdemg graph repair --space-id beta-test --dry-run
+```
+
+**Expected:** Shows 5-step repair plan: vendor cleanup, SymbolNode dedup, orphan sweep, embedding backfill, V0023 readiness. Reports counts for each step. Ends with V0023 readiness status (READY or NOT READY with duplicate count).
+
+- [ ] **PASS** — graph repair dry run completes, shows all 5 steps
+
+---
+
+### T4.7: Maintenance Cycle (Dry Run)
+
+```bash
+mdemg maintenance --space-id beta-test --dry-run
+```
+
+**Expected:** Runs decay preview then prune preview. Shows edge decay statistics (candidates, would-be-decayed, evidence-weighted formula) followed by prune statistics (weak edges, orphan nodes).
+
+- [ ] **PASS** — maintenance dry run shows decay + prune preview
+
+---
+
+### T4.8: Embeddings Backfill
+
+```bash
+mdemg embeddings backfill --space-id beta-test --dry-run
+```
+
+**Expected:** Reports count of MemoryNodes with content but missing embeddings. Count may be 0 if all nodes already have embeddings.
+
+- [ ] **PASS** — embeddings backfill dry run reports count
 
 ---
 
