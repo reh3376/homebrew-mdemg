@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-05
+
+### Added
+- V0024 migration for signal learner persistence
+- Weekly maintenance LaunchAgent (`com.mdemg.maintenance`)
+- Config cross-field validation (`Config.Validate()`)
+- Pool metrics collector for Neo4j connection monitoring
+- NilSafe embedder wrapper
+
+### Fixed
+- RRF activation seeding bias (P0) — BM25-only candidates no longer suppressed
+- Pre-bash guard fail-open (P0) — now fails closed on pattern decode error
+- Schema version drift (P0) — all deploy configs at version 23, CI validated
+- Signal learner ephemeral (P1) — persists to Neo4j across restarts
+- Background goroutine lifecycle (P1) — WaitGroup tracking, shutdown wait
+- Consolidation race (P1) — per-space TryLock
+- Cache key gap (P1) — IncludeGlobalSpace, CodeOnly, TranslateIntent included
+- Learning writeback timeout (P2) — 10s context timeout
+- Sidecar confidence floor (P2) — applied uniformly to NLI scorer
+
+## [0.6.1] - 2026-04-05
+
+### Fixed
+- `mdemg init` propagates Jiminy config to `.env` for Docker Compose (#265)
+- Hook templates use runtime port discovery instead of hardcoded URL (#267)
+- Hook templates include `# MDEMG` marker for lifecycle management
+
+### Changed
+- `mdemg init` force-updates hooks to latest templates on re-run
+
 ## [0.5.4] - 2026-04-03
 
 ### Added
