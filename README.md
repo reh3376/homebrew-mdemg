@@ -228,7 +228,28 @@ mdemg config validate   # Validate syntax and probe connectivity
 
 ---
 
-## Upgrading to v0.6.0
+## Upgrading to v0.7.x
+
+```bash
+brew upgrade mdemg        # or: mdemg upgrade
+docker compose up -d      # V0024 migration runs automatically
+mdemg service install     # optional: adds maintenance LaunchAgent
+```
+
+**Important (v0.7.2+):** The default LLM model changed from `gpt-5-nano` to `gpt-4.1-nano`. If your `.env` explicitly sets `LLM_MODEL`, `RECLASS_MODEL`, or `RERANK_MODEL` to `gpt-5-nano`, update them to `gpt-4.1-nano` or remove the override to use the new default.
+
+See the full [Upgrade Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/upgrade-guide.md) for details.
+
+### What's New in v0.7.4
+
+- DD-P1P2 deep dive bug fix campaign (10 P1 + 21 P2 fixes, all live-validated)
+- Server-native alert evaluator (Grafana no longer required for alerting)
+- LLM retry with exponential backoff, enhanced `/healthz` with subsystem checks
+- Code comprehension feedback loop, embedding cache TTL
+- Default LLM migrated to gpt-4.1-nano (non-tool-use, 2x cheaper)
+- J17 tier promotion validated T3→T2→T1, Jiminy effectiveness arc complete
+
+### Upgrading from v0.5.x to v0.6.0
 
 If upgrading from v0.5.x, run graph repair before restarting to preserve edge weights:
 
@@ -237,17 +258,6 @@ brew upgrade mdemg
 mdemg graph repair --space-id <your-space> --dry-run=false
 docker compose up -d
 ```
-
-See the full [Upgrade Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/upgrade-guide.md) for details.
-
-### What's New in v0.6.0
-
-- `mdemg graph repair` — weight-preserving SymbolNode dedup + vendor cleanup
-- `mdemg maintenance` — combined decay + prune cycle (schedulable)
-- `mdemg embeddings backfill` — fill missing embeddings
-- Evidence-weighted decay formula with safety cap
-- Self-healing V0023 migration (safe on any graph state)
-- `prune --match-ignore` and `--include-labels` flags
 
 ---
 

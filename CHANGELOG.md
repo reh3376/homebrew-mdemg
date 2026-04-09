@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-04-08
+
+### Added
+- Code comprehension feedback loop (feature-gated: `JIMINY_CODE_REGEN_ENABLED`)
+- Embedding cache TTL (`NODE_EMBEDDING_CACHE_TTL_SEC`, default: 3600)
+- TSDB schema version CI check
+- Goroutine semaphore (RSIC dispatch concurrency cap: 50)
+- Synergy file reader for RSIC health assessment
+- NLI bias alert consumer
+
+### Fixed
+- 10 P1 fixes: sequence counter resume, tier predictor timeout, training TOCTOU, watchdog ctx race, postReport lock, task cycle stale reads, TryLock skip reporting, empty-graph cascade guard, healthcheck port parameterized, trust store consistency documented
+- 11 P2 fixes: TTL raised to 86400, EdgeTypeStrategy validation, decay NaN guard, CONFLICTS_WITH MERGE, LLM handler 30s timeouts, LISTEN_PORT removal, stop_grace_period, AUTH_API_KEYS fallback, TSDB schema v10, dashboard sparse-event panels
+- All fixes live-validated (zero failures, zero regressions)
+
+## [0.7.3] - 2026-04-07
+
+### Added
+- Server-native alert evaluator (13 TSDB-query rules, replaces Grafana requirement)
+- Goroutine supervisor with panic recovery and auto-restart
+- Alert dispatcher with file + macOS notification backends
+- LLM retry with exponential backoff (429/503 only)
+- Enhanced `/healthz` with subsystem checks and degraded status
+- Health prober with alert callbacks
+- 7 new Grafana alert rules (28 total)
+
+### Fixed
+- Trust persistence goroutine leak
+- Dead startup code wired (`CONTEXT_COOLER_ENABLED`, `WEEKLY_GAP_INTERVIEWS_ENABLED`)
+- Hook alert banners broken on macOS (`timeout` command unavailable)
+
+### Changed
+- Default LLM model: gpt-5-nano → gpt-4.1-nano (non-tool-use, 2x cheaper)
+- Fine-tuning plan updated to v4.0
+- Circuit breaker expansion to outcome classifier and codegen
+
+## [0.7.2] - 2026-04-06
+
+### Fixed
+- Trust accrual: partial_compliance excluded from scoring (threshold 0.5 → 0.20)
+- Trust accrual: OutcomePartialCompliance missing from aggregate
+- WarmStore upward-crossing invalidation (T3→T2, T2→T1)
+- J8 synthesis overrides T1 compact encoding (skipped at T1 trust)
+- Partial compliance added to metrics pipeline and dashboard
+
+### Investigation
+- J17 tier promotion analysis: T3→T2→T1 validated in 15 cycles
+
+## [0.7.1] - 2026-04-06
+
+### Fixed
+- Negation detection false positives (deferred to LLM Tier 2)
+- LLM classification prompt: action summary format guidance
+- Source diversity metric query (COALESCE on guidance_type)
+- Outcome classifier: `not_applicable` for unrelated guidance
+- Guidance content normalization for embedding similarity
+- LLM tier enabled by default, heuristic fallback to partial_compliance
+- Similarity thresholds adjusted (high: 0.55, low: 0.20)
+- GUIDANCE_OUTCOME edges filtered to typed nodes only
+- Feedback cooldown reduced from 30s to 10s
+
+### Added
+- `guidance_type` property on GUIDANCE_OUTCOME edges
+- Jiminy outcome env vars in Docker Compose templates
+- DocComment enrichment for structural summaries
+
+### Investigation
+- Jiminy guidance effectiveness analysis and diagnostic script
+
 ## [0.7.0] - 2026-04-05
 
 ### Added
@@ -194,7 +263,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Support for OpenAI and Ollama embedding providers
 - Git hooks for auto-ingestion on commits
 
-[Unreleased]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.3...HEAD
+[Unreleased]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.4...HEAD
+[0.7.4]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.3...v0.7.4
+[0.7.3]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.2...v0.7.3
+[0.7.2]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.1...v0.7.2
+[0.7.1]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/reh3376/homebrew-mdemg/compare/v0.6.1...v0.7.0
+[0.6.1]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.4...v0.6.1
+[0.5.4]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/reh3376/homebrew-mdemg/compare/v0.5.0...v0.5.1
