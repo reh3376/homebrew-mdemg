@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-04-12
+
+### Added
+- **/strict Mode** — Deterministic agent governance (STRICT-P0P1 sprint):
+  - `POST /v1/jiminy/strict` — per-session strict mode toggle; state file at `~/.mdemg/.jiminy-strict-mode`
+  - `POST /v1/jiminy/reformulate` — imperative directive generation (~430 → ~200-350 tokens)
+  - `POST /v1/jiminy/classify` — response classification with graduated enforcement (SURFACED=pass, WARNED+=deny)
+  - `pre-write-check.py` PreToolUse hook — blocks Write/Edit when escalated constraint violated; fail-open when server unreachable
+- **Escalation persistence** — write-behind `EscalationStore` persists J12 state to Neo4j, survives server restarts
+- **T1/T2 comprehension fix** — bootstrap header + decoding instruction injected with T1/T2 guidance; comprehension gate auto-downgrades T1 when follow rate < threshold
+- New config: `JIMINY_ESCALATION_PERSIST_ENABLED`, `JIMINY_STRICT_STATE_PATH`, `J17_T1_COMPREHENSION_GATE`
+
+## [0.8.0] - 2026-04-10
+
+### Added
+- **Server-native alert evaluator** — 13 TSDB-query alert rules evaluated natively (Grafana no longer required)
+- **Goroutine supervisor** — monitors background goroutines with panic recovery, auto-restart, exponential backoff
+- **Alert dispatcher** — file backend with atomic JSON writes, macOS notification support, cooldown dedup
+- **Hook alert delivery** — `prompt-context.sh` and `session-start.sh` display pending alerts
+- **LLM retry with exponential backoff** — retries on 429/503 with `Retry-After` support
+- **Enhanced `/healthz`** — subsystem checks with `status: "degraded"` when unhealthy
+- **LLM consecutive failure alert** — fires after N consecutive failures (default: 3)
+- **Health prober** — periodic API/Neo4j/TSDB/sidecar probing with alert callbacks
+- New config: `ALERT_ENABLED`, `ALERT_EVALUATOR_ENABLED`, `ALERT_EVALUATOR_INTERVAL_SEC`, `LLM_RETRY_ENABLED`, `LLM_RETRY_MAX_ATTEMPTS`, `LLM_CONSECUTIVE_FAILURE_THRESHOLD`, `HEALTH_PROBE_ENABLED`, `HEALTH_PROBE_INTERVAL_SEC`
+
 ## [0.7.4] - 2026-04-08
 
 ### Added
@@ -263,7 +288,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Support for OpenAI and Ollama embedding providers
 - Git hooks for auto-ingestion on commits
 
-[Unreleased]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.4...HEAD
+[Unreleased]: https://github.com/reh3376/homebrew-mdemg/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/reh3376/homebrew-mdemg/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.4...v0.8.0
 [0.7.4]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/reh3376/homebrew-mdemg/compare/v0.7.1...v0.7.2
