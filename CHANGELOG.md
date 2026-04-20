@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-04-20
+
+### Added
+- **DH-005: Health Formula Reweighting & Confidence-Adaptive Scoring** — `ComputeOverallHealth` rewritten as normalised weighted-confidence sum (`overall = Σ(w·c·s) / Σ(w·c)`). Dimensions without data are automatically excluded via confidence multiplier — no more 4/5/6/7-dim branch table.
+  - 7 new operator weight knobs: `RSIC_HEALTH_WEIGHT_<RETRIEVAL|MEMORY|EDGE|TASK|GUIDANCE|PROTOCOL|SYNERGY>` (hybrid reliability × user-impact priors, sum = 1.00). Zero disables a dimension; negative falls back to default with warning log.
+  - 7 new Prometheus gauges: `mdemg_rsic_health_<dim>_confidence` exposed via `/metrics`, persisted by TSDB writeback.
+  - New Grafana "Dimension Confidence (DH-005)" row on `mdemg-rsic` dashboard distinguishes "scored 0 because broken" from "scored 0 because no data."
+- **DH-004: J17 Protocol & Jiminy Dashboard Remediation** — admin endpoints + deadline-aware LLM retry:
+  - `GET /v1/admin/breakers` — list all circuit breakers with state + counts (gated by `AUTH_API_KEYS`).
+  - `POST /v1/admin/breakers/reset` — force a named breaker to `StateClosed` (operator escape hatch for transient breaker trips).
+  - New env var `LLM_RETRY_DEADLINE_ENABLED` (default `true`) — retry once on `context.DeadlineExceeded` iff remaining context budget > 2× base delay.
+  - 7 J17 sidecar env vars exposed in all compose templates: `J17_SIDECAR_URL`, `J17_SIDECAR_TIMEOUT_MS`, `J17_SIDECAR_MODE`, `J17_SIDECAR_CONFIDENCE_FLOOR`, `J17_SIDECAR_CB_FAILURE_THRESHOLD`, `J17_SIDECAR_CB_TIMEOUT_SEC`, `J17_NLI_COMPREHENSION_ENABLED`, `J17_NLI_CALIBRATION_BIAS_THRESHOLD`.
+- **UAITS Framework** — Universal AI Training Specification (10th UxTS framework): 4 paradigms (SFT, DPO, RAFT, curriculum), spec-driven pipeline dispatch, DPO pair builder from `constraint_outcomes` + `llm_interactions`, new CLI `mdemg data curate` / `mdemg data validate`.
+- **DOC-UPDATE-01** — documentation audit aligned user/architecture/ft-lora docs with DH-004/DH-005 runtime defaults.
+
+### Changed
+- **`CONSULTING_CLASSIFY_TIMEOUT_MS`** default bumped 15000 → 30000 (matches `JIMINY_SYNTHESIS_TIMEOUT_MS`; survives typical `gpt-5.4-mini` latency without tripping `openai-constraint-classify` breaker on one slow call).
+- **`J17_SIDECAR_TIMEOUT_MS`** default bumped 200 → 1000, with 100ms floor in `FromEnv()`. NLI primary-path calls were timing out at 200ms ~56% of the time, inflating `j17_nli_mean_bias`.
+- **Retrieval scoring hyperparameters** — α 0.55 → 0.60, β 0.30 → 0.20, γ 0.10 → 0.15. Single-row ρ split into layered ρ_L0 (0.05) / ρ_L1 (0.02) / ρ_L2 (0.01).
+- **LLM Model Config** — standardized all LLM tasks to `gpt-5.4-mini` (from mixed `gpt-4.1`/`gpt-4o-mini`) for training-data quality during distillation campaign.
+
+### Fixed
+- **J17 Protocol Health null-tolerance** — `TicketRestoreSuccessRate` now defaults to `1.0` when `ticketRestoreTotal == 0` (healthy system with no restore events no longer drags 15% stability weight to zero).
+- **NLI fallback counting gate-aware** — `RecordNLIFallback` only fires when `nliScorer.IsOperational()` (enabled + sidecar URL set). A gated-off scorer no longer inflates `j17_nli_mean_bias`.
+- **Alert cooldown TOCTOU race** — atomic `cooldown.TryRecord()` replaces separate `Allow`+`Record` lock acquisitions. Fixes repeating "Jiminy Pipeline Critical" alerts.
+- **Context Cooler graduation** — `CoactivateSession` now reinforces `stability_score` on every session observation (previously only created edges, so 99.7% of conversation observations stayed volatile forever; `rsic_health_task` = 0.019).
+- **ACA-BFC + DD-P1P2 hardening** — Jiminy semantic dedup (cosine similarity + fallback), temporal correction decay (`JIMINY_CORRECTION_DECAY_RATE`), bounded ticket LRU (`J17_TICKET_CACHE_SIZE`), tier-1 predictor timeout differentiation, watchdog ctx race guard, embedding cache TTL, RSIC hardening (32 findings across 6 epics), Neo4j writer for signal learner (V0024 migration), sidecar confidence floor, writeback timeout, cache key correctness, NilSafe embedder.
+
 ## [0.8.1] - 2026-04-12
 
 ### Added

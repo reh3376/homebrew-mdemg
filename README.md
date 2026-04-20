@@ -236,9 +236,21 @@ docker compose up -d      # V0024 migration runs automatically
 mdemg service install     # optional: adds maintenance LaunchAgent
 ```
 
-**Important (v0.7.2+):** The default LLM model changed from `gpt-5-nano` to `gpt-4.1-nano`. If your `.env` explicitly sets `LLM_MODEL`, `RECLASS_MODEL`, or `RERANK_MODEL` to `gpt-5-nano`, update them to `gpt-4.1-nano` or remove the override to use the new default.
+**Important (default LLM rotation history):**
+- v0.7.2: `gpt-5-nano` → `gpt-4.1-nano`
+- v0.8.0: `gpt-4.1-nano` → `gpt-5.4-mini` (current default, all tasks standardized for training-data quality)
+
+If your `.env` explicitly sets `LLM_MODEL`, `RECLASS_MODEL`, or `RERANK_MODEL` to a prior default, update them to `gpt-5.4-mini` or remove the override to inherit the new default.
 
 See the full [Upgrade Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/upgrade-guide.md) for details.
+
+### What's New in v0.8.5
+
+- **DH-005 Health Formula Reweighting** — `ComputeOverallHealth` rewritten as normalised weighted-confidence sum; 7 `RSIC_HEALTH_WEIGHT_*` operator knobs (Retrieval 0.08, Memory 0.15, Edge 0.15, Task 0.20, Guidance 0.17, Protocol 0.20, Synergy 0.05); 7 new `rsic_health_<dim>_confidence` Prometheus gauges; new "Dimension Confidence" Grafana row.
+- **DH-004 Dashboard Remediation** — admin breakers endpoints (`GET/POST /v1/admin/breakers[/reset]`); deadline-aware LLM retry (`LLM_RETRY_DEADLINE_ENABLED`); `CONSULTING_CLASSIFY_TIMEOUT_MS` 15000→30000; `J17_SIDECAR_TIMEOUT_MS` 200→1000; 7 J17 sidecar env vars in compose templates.
+- **/strict Mode + UAITS Framework** — deterministic agent governance (`/v1/jiminy/strict|reformulate|classify`); 10th UxTS framework with DPO/RAFT/curriculum paradigms; new `mdemg data curate` / `mdemg data validate` commands.
+- **ACA-BFC + DD-P1P2 hardening** — Jiminy semantic dedup, temporal correction decay, tier-1 predictor timeouts, watchdog guard, embedding cache TTL, RSIC 32-finding remediation, Neo4j signal learner persistence, alert cooldown TOCTOU race fix, context cooler stability reinforcement (99.7% volatile observations now graduate).
+- **DOC-UPDATE-01** — user/architecture/ft-lora docs aligned with runtime defaults.
 
 ### What's New in v0.7.4
 
