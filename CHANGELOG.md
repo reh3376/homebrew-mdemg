@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-06
+
+### Breaking
+- **Phase 13.5 — Production LLM runtime port 8101 → 8102.** `mlx_lm.server` (port 8101) is replaced by `llama.cpp llama-server` (port 8102) serving `mdemg-llm-v1.Q5_K_M.gguf`. The mlx_lm.server backend exhibited unbounded KV-cache → Metal-OOM → SIGABRT crashes every ~14 min on M5 Max + macOS 26.3.x; llama.cpp has architecturally-bounded KV cache (`--ctx-size × --parallel`) and stays HTTP-alive on OOM. Bake-off result: 0 crashes / 160 min / 301 calls; latency p50 17s → 3.0s (5.6× faster); UVTS quality at perfect parity (0.396 = 0.396). **Migration:** edit `.env` and replace every occurrence of `:8101` with `:8102`. The `com.mdemg.llama-server.plist` LaunchAgent is auto-installed via the formula's `post_install` hook.
+- **Phase 13.6 — `MLX_*` env vars renamed to `LLM_*`.** Watchdog/preflight env-var family migrated for backend-agnosticism. Legacy `MLX_*` names continue to work but emit `WARN config: env var deprecated, please rename` at boot. Aliases removable ≥1 release cycle from this commit. Migration: `MLX_WATCHDOG_ENABLED` → `LLM_WATCHDOG_ENABLED`, `MLX_PROBE_INTERVAL_SEC` → `LLM_PROBE_INTERVAL_SEC`, `MLX_PROBE_TIMEOUT_SEC` → `LLM_PROBE_TIMEOUT_SEC`, `MLX_FAIL_FAST_ENABLED` → `LLM_FAIL_FAST_ENABLED`, `MDEMG_ALLOW_NO_MLX` → `MDEMG_ALLOW_NO_LLM`.
+
+### Added
+- **Phase 14 — Sparse Retrieval Gate.** Note 06 percentile-activation gate at `internal/retrieval/gate.go` operates post-aggregation pre-rerank. **Default-on** since Phase 14.1.1 hybrid 120q PASSED (mean +0.003, 0 regressions, 10 improvements): `SPARSE_RETRIEVAL_ENABLED=true`, `SPARSE_MIN_ACTIVE=15` global + `data_flow_integration` per-category override at MIN=20. Produces ~25% rerank-input reduction on most calls. Operator opt-out: `SPARSE_RETRIEVAL_ENABLED=false`. Per-call override via `?sparse=true|false`, `?sparse_percentile=N`, or `?category=...` URL params. Persists to V0019 `sparse_gate_metrics` hypertable.
+- **Phase 14.2 — Context Fingerprinting + 5th RRF column.** Per-observation 256-bit sparse vectors that let retrieval discriminate the same `MemoryNode` in different contexts. **Default-on** since Phase 14.2.3 (CONTEXT_FINGERPRINT_ENABLED=true, RETRIEVAL_CONTEXT_COLUMN_ENABLED=true) after 120q full A/B PASSED (mean +0.009, std -0.023, 11 improvements, 0 regressions). Per-category weight overrides via `RETRIEVAL_CONTEXT_COLUMN_CATEGORY_WEIGHTS` JSON env. Vector-based query→fingerprint derivation when `?context=auto` URL param set. Strict mode (`?strict_context=true`) drops candidates below `RETRIEVAL_CONTEXT_STRICT_THRESHOLD` (0.25 Jaccard). Backfill CLI: `mdemg migrate context-fingerprint --space-id <id>`. Schema: V0025+V0026+TSDB V0020.
+- **Phase 13 + 13.1 — Column-Voting Retrieval.** RRF aggregator over 4 columns (Embedding + BM25 + Graph + Structural) with `consensus_strength` output signal. **Default-on** since Phase 13.1 (`RETRIEVAL_COLUMN_VOTING_ENABLED=true`) — embedding-heavy weights `0.50/0.20/0.15/0.15` passed full 120q UVTS A/B with mean +0.023 (+5.9%), 30 improvements. Per-column suppression knobs + per-column weights + `RETRIEVAL_RRF_K` (60) + `RETRIEVAL_STRUCTURAL_HOPS` (2) + `RETRIEVAL_COLUMN_TIMEOUT_FRACTION` (0.8). Operator opt-out: `RETRIEVAL_COLUMN_VOTING_ENABLED=false`.
+- **Phase 12 — UVTS Activation.** Universal Validation Test Specification framework activated. New `make test-uvts-{lint,quick,full}` targets. A/B compare harness at `docs/tests/uvts/runners/uvts_ab_compare.py`. Persists to V0016 `uvts_runs` + `uvts_results` (TSDB schema 15 → 16).
+- **Phase 10.5 — UBENCH framework.** Promotes `neural.benchmarks.run_benchmark` to a UxTS-pattern framework. New `docs/tests/ubench/` tree with `make test-ubench{,-lint,-contract,-run}`. Pytest contract: `pytest docs/tests/ubench/contracts/`. Spec at `docs/tests/ubench/specs/mdemg.ubench.json` (17 specs / 108 rows / `min_rows_per_task=3`).
+- **Phase 11.6.3 — MLX Watchdog.** Always-on policy enforced (`LLM_WATCHDOG_ENABLED=true` default). Probe `<endpoint>/v1/models` every 5s with 2s timeout; state machine `up → degraded → down` with hysteresis. Fast-fail gate short-circuits retry math when state=Down. New `mdemg watchdog status` CLI. 3 Prometheus metrics. Bypass via `MDEMG_ALLOW_NO_LLM=1`.
+- **Claude Code GitHub App workflows.** `@claude` mention handler (`claude.yml`) and auto PR review (`claude-code-review.yml`).
+
+### Changed
+- **Schema versions bumped:** Neo4j to V0026, TSDB to V0020 (was V0023/V0019 in v0.8.5). `auto-migrate` runs both on startup.
+- **`mdemg-llm-v1` is the production LLM model** (Phase 5 dense Qwen3-14B fine-tune; aggregate 0.8389 on augmented eval). Served at GGUF Q5_K_M via llama-server.
+- **Phase 11.5e rollback:** Phase 5 base reinstated as production canonical. Stage-1 distill (`-distill-stage1/`) and Phase 11 GRPO (`-rl-run7/`) archived; both were net-negative on the augmented 16-task eval.
+
+### Deprecated
+- **`MLX_*` env-var aliases.** Removable ≥1 release cycle from this commit (see Breaking → Phase 13.6). Migrate to `LLM_*`.
+- **`mlx_lm.server` runtime path.** `~/Library/LaunchAgents/com.mdemg.mlx-server.plist.disabled-phase13_5` is preserved for emergency rollback only.
+
+### Fixed
+- **Sequence counter restored on resume.** Tier predictor timeout differentiation. Training TOCTOU fix. Watchdog ctx race guard. `postReport` lock upgrade. Task cycle version counter. Empty-graph cascade guard. Healthcheck port parameterized. EdgeTypeStrategy validation. Decay NaN guard. CONFLICTS_WITH MERGE. LLM handler timeouts. Goroutine semaphore. Embedding cache TTL. NLI bias alert consumer. Compose cleanup (`LISTEN_PORT`, `stop_grace_period`, `AUTH_API_KEYS`). Eval cache wired into `llmEvaluate()`. Dead trust store goroutine removed.
+
 ## [0.8.5] - 2026-04-20
 
 ### Added

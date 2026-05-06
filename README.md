@@ -228,21 +228,60 @@ mdemg config validate   # Validate syntax and probe connectivity
 
 ---
 
-## Upgrading to v0.7.x
+## Upgrading to v0.9.0
 
 ```bash
 brew upgrade mdemg        # or: mdemg upgrade
-docker compose up -d      # V0024 migration runs automatically
-mdemg service install     # optional: adds maintenance LaunchAgent
+docker compose up -d      # V0026 + TSDB V0020 migrations run automatically
+mdemg service install     # optional: adds llama-server + maintenance LaunchAgents
 ```
 
-**Important (default LLM rotation history):**
-- v0.7.2: `gpt-5-nano` → `gpt-4.1-nano`
-- v0.8.0: `gpt-4.1-nano` → `gpt-5.4-mini` (current default, all tasks standardized for training-data quality)
+> **⚠️ Breaking — local LLM endpoint port moved 8101 → 8102**
+>
+> v0.9.0 replaces `mlx_lm.server` (port 8101) with `llama.cpp llama-server` (port 8102) — see "What's New" below for the rationale. If your `.env` references the old port, mdemg's startup preflight will refuse to start.
+>
+> ```bash
+> # Edit .env and replace EVERY occurrence of :8101 → :8102
+> sed -i.bak 's|:8101|:8102|g' .env
+>
+> # Restart and verify
+> docker compose up -d
+> mdemg watchdog status
+> ```
+>
+> The new `com.mdemg.llama-server.plist` LaunchAgent is auto-installed by the formula's `post_install` hook. The old `com.mdemg.mlx-server.plist` is preserved at `*.disabled-phase13_5` for emergency rollback only.
 
-If your `.env` explicitly sets `LLM_MODEL`, `RECLASS_MODEL`, or `RERANK_MODEL` to a prior default, update them to `gpt-5.4-mini` or remove the override to inherit the new default.
+> **Deprecated env-var family — `MLX_*` → `LLM_*`**
+>
+> Phase 13.6 renamed the watchdog/preflight env-vars. Legacy names still work but emit `WARN config: env var deprecated, please rename` at boot. Aliases are removable ≥1 release cycle from v0.9.0.
+>
+> | Old | New |
+> |---|---|
+> | `MLX_WATCHDOG_ENABLED` | `LLM_WATCHDOG_ENABLED` |
+> | `MLX_PROBE_INTERVAL_SEC` | `LLM_PROBE_INTERVAL_SEC` |
+> | `MLX_PROBE_TIMEOUT_SEC` | `LLM_PROBE_TIMEOUT_SEC` |
+> | `MLX_FAIL_FAST_ENABLED` | `LLM_FAIL_FAST_ENABLED` |
+> | `MDEMG_ALLOW_NO_MLX` | `MDEMG_ALLOW_NO_LLM` |
+
+**Default LLM rotation history:**
+- v0.7.2: `gpt-5-nano` → `gpt-4.1-nano`
+- v0.8.0: `gpt-4.1-nano` → `gpt-5.4-mini`
+- v0.9.0: `gpt-5.4-mini` (cloud) → `mdemg-llm-v1` (local Qwen3-14B fine-tune via llama-server, port 8102)
+
+If your `.env` still pins `LLM_MODEL`, `RECLASS_MODEL`, or `RERANK_MODEL` to a prior default, either remove the override (to inherit `mdemg-llm-v1`) or set them to `gpt-5.4-mini` to keep cloud-routed inference.
 
 See the full [Upgrade Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/upgrade-guide.md) for details.
+
+### What's New in v0.9.0
+
+- **Phase 13.5 — Production LLM runtime cutover (llama.cpp).** `mlx_lm.server` (port 8101) replaced by `llama-server` (port 8102) serving `mdemg-llm-v1.Q5_K_M.gguf`. Bake-off result: 0 crashes / 160 min / 301 calls; latency p50 17s → 3.0s (5.6× faster); UVTS quality at perfect parity. The mlx_lm.server backend exhibited unbounded KV-cache → Metal-OOM → SIGABRT crashes every ~14 min on M5 Max + macOS 26.3.x; llama.cpp has architecturally-bounded KV cache and stays HTTP-alive on OOM. **Breaking — see "Upgrading" above for the .env migration.**
+- **Phase 14.x retrieval defaults flipped on.** Sparse-retrieval gate (`SPARSE_RETRIEVAL_ENABLED=true`, hybrid MIN=15 + `data_flow_integration` MIN=20) cuts ~25% of rerank input on most calls, mean parity. Context fingerprinting + 5th RRF column (`CONTEXT_FINGERPRINT_ENABLED=true`, `RETRIEVAL_CONTEXT_COLUMN_ENABLED=true`) lets retrieval discriminate the same `MemoryNode` in different contexts; 120q full A/B PASSED at mean +0.009, 11 improvements, 0 regressions. Per-category weight overrides via `RETRIEVAL_CONTEXT_COLUMN_CATEGORY_WEIGHTS` JSON env. New backfill: `mdemg migrate context-fingerprint --space-id <id>`.
+- **Phase 13 + 13.1 — Column-Voting Retrieval default-on.** RRF aggregator over Embedding + BM25 + Graph + Structural columns at embedding-heavy weights `0.50/0.20/0.15/0.15`. 120q UVTS A/B: mean +0.023 (+5.9%), 30 improvements. New `consensus_strength` signal feeds DH-005 retrieval-confidence dimension and Phase 14 sparse gate.
+- **Phase 13.6 — Backend-agnostic env-var rename.** `MLX_*` → `LLM_*` for the watchdog suite. Legacy aliases retained for ≥1 release cycle; deprecation log fires at boot. **See "Upgrading" above for the rename table.**
+- **Phase 12 — UVTS framework activation.** `make test-uvts-{lint,quick,full}` for retrieval-quality A/B testing. New TSDB `uvts_runs` + `uvts_results` hypertables.
+- **Phase 10.5 — UBENCH framework.** `make test-ubench{,-lint,-contract,-run}` wraps the Phase 10 LLM benchmark in the UxTS contract pattern. Pytest entry: `pytest docs/tests/ubench/contracts/`. Spec at `docs/tests/ubench/specs/mdemg.ubench.json`.
+- **Phase 11.6.3 — MLX/LLM Watchdog default-on.** `LLM_WATCHDOG_ENABLED=true` by default. mdemg refuses to start if the LLM endpoint is unreachable. Bypass via `MDEMG_ALLOW_NO_LLM=1`. New `mdemg watchdog status` CLI for operator visibility.
+- **Claude Code GitHub App workflows.** `@claude` mention handler + auto PR review.
 
 ### What's New in v0.8.5
 
