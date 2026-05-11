@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-05-11
+
+### Added
+
+- **Local LoRA Distribution via Ollama Library — `mdemg model pull`** (Sprint MODEL-DIST-001). One-command path from `brew install mdemg` to a working local LLM. Three fused GGUF quants now live on Ollama Library at `reh3376/mdemg-llm-v1`:
+  - `:Q4_K_M` — 8.4 GB, 12 GB RAM min, 16 GB recommended (4.87 BPW)
+  - `:Q5_K_M` — 9.8 GB, 14 GB RAM min, 24 GB recommended (5.69 BPW, production canonical)
+  - `:Q8_0` — 14.6 GB, 20 GB RAM min, 32 GB recommended (8.50 BPW)
+- **New CLI subcommand group**: `mdemg model pull|list|verify|remove|where`. `pull` does RAM auto-detection (picks the quant for the host) + SHA verifies against the binary-embedded `quant_manifest.json` + symlinks the Ollama blob into `~/.mdemg/models/` (or `MDEMG_MODEL_DIR` override).
+- **Pluggable backend interface** (`Fetcher` in `internal/cli/model_fetcher.go`) — v1 ships Ollama only; future backends (HF Hub, S3, GitHub Release, file://) plug in via factory dispatch on `MDEMG_MODEL_BACKEND` without touching the CLI surface.
+- **Configurability Contract** — every operator-visible value is dynamic. 11 env vars + flag overrides + defaults tuned to the v1 production reality. Knobs: `MDEMG_MODEL_BACKEND`, `MDEMG_MODEL_NAMESPACE`, `MDEMG_MODEL_NAME`, `MDEMG_MODEL_QUANTS`, `MDEMG_MODEL_RAM_TIERS` (JSON map), `MDEMG_MODEL_QUANT`, `MDEMG_ADAPTER_BASE`, `MDEMG_MODEL_DIR`, `OLLAMA_MODELS`, `OLLAMA_HOST`, `MDEMG_MODEL_MANIFEST_PATH`.
+- **TSDB V0021 `model_install_events` hypertable** — observability for every `mdemg model pull|verify|remove` invocation. Columns: event_id, recorded_at, event_type, backend_name, namespace, model_name, quant, adapter, success, latency_ms, sha256, size_bytes, err_message. Synchronous single-row INSERT, 2s connect timeout, graceful nil-pool degraded mode.
+- **Feature doc** at `docs/features/local-model-distribution.md` — Why / Choices / How / How to use, resource matrix, full Configurability Contract enumeration, troubleshooting.
+
+### Changed
+
+- **Brew formula caveats** now document `mdemg model pull` as the canonical local-LLM install path (`.goreleaser.yaml` template, propagates to `mdemg.rb`).
+- **TSDB_REQUIRED_SCHEMA_VERSION** default bumped 20 → 21.
+
+### Deferred
+
+- **Adapter-only path** (LoRA weights for layering over operator's own Qwen3-14B base) deferred to MODEL-DIST-002. `--adapter` flag accepted at parse time, errors with `ErrAdapterDeferred` and forward reference. See `docs/development/model-dist-001/epic_2_forensic.md` for the deferral rationale (MLX → PEFT → GGUF LoRA tooling gaps).
+
+### Distribution architecture note
+
+**Ollama as distribution only — runtime stays `llama.cpp llama-server` (Phase 13.5)**. Ollama runtime is broken on M5 + macOS 26.3.x per CLAUDE.md. The `mdemg model pull` flow invokes `ollama pull` for the download + manifest management, then symlinks the blob into `~/.mdemg/models/` and points `llama-server` at it. Ollama is the **registry**, not the inference engine.
+
 ## [0.9.0] - 2026-05-06
 
 ### Breaking

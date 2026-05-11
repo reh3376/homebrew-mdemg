@@ -151,6 +151,62 @@ mdemg ingest --path . # Ingest codebase into the knowledge graph
 open http://localhost:9999/ui/  # Browser dashboard
 ```
 
+### Optional: Pull the local LLM (`mdemg-llm-v1`)
+
+If you want MDEMG to run its production LLM locally (instead of using OpenAI), pull the fine-tuned `mdemg-llm-v1` model. The model is hosted on **Ollama Library** at https://ollama.com/reh3376/mdemg-llm-v1 in 3 quant tiers:
+
+```bash
+brew install ollama          # one-time — Ollama is the distribution channel (not the inference runtime)
+mdemg model pull             # RAM-auto picks Q4_K_M / Q5_K_M / Q8_0 for your hardware
+# → prints the MDEMG_MODEL_PATH line to add to your .env, plus the launchctl restart command
+```
+
+Three quants serve three RAM tiers:
+
+| Quant | GGUF size | Min RAM | Recommended RAM | Notes |
+|---|---|---|---|---|
+| Q4_K_M | ~8.4 GB | 12 GB | 16 GB | Smallest fidelity tier |
+| Q5_K_M | ~9.8 GB | 14 GB | 24 GB | **Production canonical** (Phase 13.5) |
+| Q8_0 | ~14.6 GB | 20 GB | 32 GB | Highest fidelity; ~50% bigger for marginal gain on a 14B fine-tune |
+
+Direct Ollama Library pages:
+- https://ollama.com/reh3376/mdemg-llm-v1:Q4_K_M
+- https://ollama.com/reh3376/mdemg-llm-v1:Q5_K_M
+- https://ollama.com/reh3376/mdemg-llm-v1:Q8_0
+
+> **Note**: MDEMG uses `llama.cpp llama-server` (Phase 13.5) as the inference runtime, *not* Ollama's runtime. Ollama is only the distribution channel — `mdemg model pull` invokes `ollama pull` under the hood, then symlinks the GGUF blob into `~/.mdemg/models/` so `llama-server` can serve it on port 8102. Operators on hardware where Ollama's runtime is broken (M5 + macOS 26.3.x per the upstream issue tracker) still get a working local LLM through this path.
+
+**Manage your pulled models:**
+
+```bash
+mdemg model list       # tabular: name, symlink target, size, SHA prefix
+mdemg model verify     # re-check SHA256 against the embedded quant manifest
+mdemg model where      # print the resolved local path (for shell scripting)
+mdemg model remove --yes  # unlinks symlink + invokes `ollama rm <tag>`
+```
+
+**Explicit quant selection** (skip RAM auto-detection):
+
+```bash
+mdemg model pull --quant Q4_K_M
+mdemg model pull --quant Q5_K_M
+mdemg model pull --quant Q8_0
+```
+
+**Forks and custom variants**: every operator-visible value is dynamic. Publish your own variant under a different namespace:
+
+```bash
+MDEMG_MODEL_NAMESPACE=acme MDEMG_MODEL_NAME=custom-llm mdemg model pull
+# or
+mdemg model pull --namespace acme --name custom-llm --quant Q5_K_M
+```
+
+Full Configurability Contract (11 env vars + flags) documented at [`docs/features/local-model-distribution.md`](https://github.com/reh3376/mdemg/blob/main/docs/features/local-model-distribution.md).
+
+If you don't want a local LLM, skip this step — MDEMG falls back to OpenAI (default `gpt-5.4-mini`).
+
+---
+
 For detailed installation, prerequisites, and verification steps, see the [Beta Testing Guide](mdemg_beta_testing.md).
 
 ---
@@ -228,6 +284,18 @@ mdemg config validate   # Validate syntax and probe connectivity
 
 ---
 
+## Upgrading to v0.10.0
+
+```bash
+brew upgrade mdemg        # or: mdemg upgrade
+docker compose up -d      # TSDB V0021 model_install_events migration runs automatically
+brew install ollama       # one-time, if you want the local LLM
+mdemg model pull          # one-time, fetches mdemg-llm-v1 from Ollama Library
+# Follow the printed instructions to set MDEMG_MODEL_PATH in .env + restart
+```
+
+No breaking changes from v0.9.0. The `mdemg model` CLI is additive; existing installs continue working unchanged. See "What's New in v0.10.0" below.
+
 ## Upgrading to v0.9.0
 
 ```bash
@@ -267,10 +335,26 @@ mdemg service install     # optional: adds llama-server + maintenance LaunchAgen
 - v0.7.2: `gpt-5-nano` → `gpt-4.1-nano`
 - v0.8.0: `gpt-4.1-nano` → `gpt-5.4-mini`
 - v0.9.0: `gpt-5.4-mini` (cloud) → `mdemg-llm-v1` (local Qwen3-14B fine-tune via llama-server, port 8102)
+- v0.10.0: model now **publicly distributed** via Ollama Library — `mdemg model pull` does the fetch + symlink + SHA-verify dance in one command
 
 If your `.env` still pins `LLM_MODEL`, `RECLASS_MODEL`, or `RERANK_MODEL` to a prior default, either remove the override (to inherit `mdemg-llm-v1`) or set them to `gpt-5.4-mini` to keep cloud-routed inference.
 
 See the full [Upgrade Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/upgrade-guide.md) for details.
+
+### What's New in v0.10.0
+
+- **Local LoRA model distributed via Ollama Library** — Sprint MODEL-DIST-001. `mdemg-llm-v1` (Phase 5 dense Qwen3-14B fine-tune) now publicly available at https://ollama.com/reh3376/mdemg-llm-v1 in three quants:
+  - `:Q4_K_M` — 8.4 GB, 12 GB RAM min, 16 GB recommended
+  - `:Q5_K_M` — 9.8 GB, 14 GB RAM min, 24 GB recommended (production canonical)
+  - `:Q8_0` — 14.6 GB, 20 GB RAM min, 32 GB recommended
+- **New CLI: `mdemg model pull|list|verify|remove|where`.** One-command install path — see the "Optional: Pull the local LLM" section above in Quick Start.
+- **Pluggable distribution backend.** Ollama in v1; future `MDEMG_MODEL_BACKEND=hf|s3|github-release|file` work without changing the CLI.
+- **Configurability Contract.** 11 env vars + flag overrides cover every operator-visible value (namespace, name, quant allowlist, RAM-tier map, paths, manifest source). Defaults Just Work; forks override.
+- **TSDB V0021 `model_install_events` hypertable.** Structured observability rows for every pull/verify/remove operation (event_type, backend_name, namespace, model_name, quant, latency, SHA, size). Grafana panels coming in Sprint B.
+- **Architectural note**: Ollama is the **distribution channel**, not the inference runtime. `llama.cpp llama-server` (Phase 13.5) remains the production runtime on port 8102. `mdemg model pull` invokes `ollama pull` under the hood, then symlinks the GGUF blob into `~/.mdemg/models/` so llama-server can serve it directly. Operators on hardware where Ollama runtime is broken still get a working local LLM through this path.
+- **Adapter-only path (LoRA over your own Qwen3-14B base)** deferred to Sprint MODEL-DIST-002 — MLX → PEFT → GGUF LoRA conversion tooling work. The `--adapter` flag is reserved in the CLI for forward-compat.
+
+Feature doc: [`docs/features/local-model-distribution.md`](https://github.com/reh3376/mdemg/blob/main/docs/features/local-model-distribution.md).
 
 ### What's New in v0.9.0
 
