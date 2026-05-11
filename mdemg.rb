@@ -5,14 +5,14 @@
 class Mdemg < Formula
   desc "Multi-Dimensional Emergent Memory Graph — cognitive substrate for AI agents"
   homepage "https://github.com/reh3376/mdemg"
-  version "0.9.0"
+  version "0.10.0"
 
   depends_on "docker" => :optional
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.9.0/mdemg_0.9.0_darwin_amd64.tar.gz"
-      sha256 "bce1c13b5863b4166407c2f4f4a02867d1c15eb705f05cd6c0b59c519e0b4b45"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.10.0/mdemg_0.10.0_darwin_amd64.tar.gz"
+      sha256 "0fcf8c6d9cbe3f078eb24f6b90ca0efe911029aab0abd4f53bd1737a0c9795f6"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -30,8 +30,8 @@ class Mdemg < Formula
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.9.0/mdemg_0.9.0_darwin_arm64.tar.gz"
-      sha256 "6f4091387a37c51bedaf15d39151f6e42376f1122400c66f1881563789ed2754"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.10.0/mdemg_0.10.0_darwin_arm64.tar.gz"
+      sha256 "8cb376f06e4ed0f4ec6fc2fa5ca3ce9a706d3aa4785ee82b2e23552f9cdb2d99"
 
       define_method(:install) do
         bin.install "mdemg"
@@ -52,8 +52,8 @@ class Mdemg < Formula
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.9.0/mdemg_0.9.0_linux_amd64.tar.gz"
-      sha256 "c73d22238753ecfb1bf060ba51b2f8dbedc77caf09c40199c2347e0f428cb423"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.10.0/mdemg_0.10.0_linux_amd64.tar.gz"
+      sha256 "0da525b0f46758fd479c782d0fd04a8b7d539a6f32285a14b570edec29b97b55"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -70,8 +70,8 @@ class Mdemg < Formula
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/reh3376/mdemg/releases/download/v0.9.0/mdemg_0.9.0_linux_arm64.tar.gz"
-      sha256 "c2cd2fa2a895379eefdc61f24fc4fe5060c0f9fa992c99a7f6605fac02ba1b29"
+      url "https://github.com/reh3376/mdemg/releases/download/v0.10.0/mdemg_0.10.0_linux_arm64.tar.gz"
+      sha256 "370d25d7d2c242b0ada4bf5f4be9e253d151a9947c9102fb1574112e669acd08"
       define_method(:install) do
         bin.install "mdemg"
         man1.install Dir["man/man1/*.1"]
@@ -100,7 +100,15 @@ class Mdemg < Formula
       Docker is required for running MDEMG services.
       After 'brew upgrade mdemg', running Docker instances are updated automatically.
       Jiminy inner-voice guidance is configured during 'mdemg init'.
-      Default model: gpt-5.4-mini (OpenAI) or qwen3:8b (Ollama).
+
+      Local LLM (mdemg-llm-v1, Phase 13.5 production canonical):
+        brew install ollama          # one-time distribution prereq
+        mdemg model pull             # RAM-auto picks Q4/Q5/Q8 quant
+        # → prints MDEMG_MODEL_PATH for your .env
+
+      OpenAI fallback if you don't want a local LLM:
+        Default models: gpt-5.4-mini (OpenAI) or qwen3:8b (Ollama).
+
       Run 'mdemg init' in your project directory to get started.
     EOS
   end
