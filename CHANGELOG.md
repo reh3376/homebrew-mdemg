@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-06-08
+
+### Added
+- **Event Graph Federation** — `mdemg eventgraph reinforcement-neighborhood` + `guidance-outcome-neighborhood`: walk a node's graph neighborhood and surface the Hebbian reinforcement events / constraint-effectiveness outcomes touching it.
+- **`mdemg model run`** — chat with the running local LLM (one-shot or interactive REPL).
+- **`mdemg model pull --adapter`** — pull the smaller adapter-only artifact (~257 MB LoRA) to layer over your own Qwen3-14B base (MODEL-DIST-002).
+- **Fail-loud scheduled jobs (NOSILENT-001)** — TSDB backup / maintenance / export jobs now record outcomes + raise high-severity alerts on failure or staleness, instead of failing silently.
+- **Jiminy governance skill + per-conversation SessionID** — the J17 agent-governance front door; trust/escalation now isolate per Claude Code conversation.
+
+### Fixed
+- `docker` CLI now resolves under the launchd minimal PATH (container stats + TSDB backup no longer silently fail; data plane was never affected — it's network, not the docker CLI).
+
+### Changed
+- TSDB schema 22 → 24 (additive: `reinforcement_events` constraint-code index + `scheduled_job_events`).
+
+See the main repo `CHANGELOG.md` [0.10.1] for full detail.
+
 ## [0.10.0] - 2026-05-11
 
 ### Added

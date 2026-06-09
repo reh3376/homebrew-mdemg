@@ -284,6 +284,21 @@ mdemg config validate   # Validate syntax and probe connectivity
 
 ---
 
+## Upgrading to v0.10.1
+
+```bash
+brew upgrade mdemg        # or: mdemg upgrade
+docker compose up -d      # additive TSDB migrations (V0023/V0024) run automatically
+```
+
+No breaking changes from v0.10.0 — additive only. Highlights:
+- **Event Graph Federation** — `mdemg eventgraph reinforcement-neighborhood` / `guidance-outcome-neighborhood` walk a node's graph neighborhood and surface the time-series events touching it.
+- **`mdemg model run`** (chat with the local LLM) and **`mdemg model pull --adapter`** (smaller adapter-only download).
+- **No silent failures** — scheduled backup/maintenance/export jobs now record outcomes + alert on failure or staleness.
+- **Jiminy governance skill + per-conversation SessionID** — the J17 agent-governance front door; escalation isolates per conversation.
+
+See the main repo `CHANGELOG.md` [0.10.1] for full detail.
+
 ## Upgrading to v0.10.0
 
 ```bash
