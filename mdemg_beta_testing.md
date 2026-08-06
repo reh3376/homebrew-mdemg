@@ -24,6 +24,11 @@
 
 ---
 
+> **New: printable install checklist**
+> If you're short on time, start with the [Install Checklist](https://github.com/reh3376/mdemg/blob/main/docs/beta/install-checklist.md) — a 30-min guided path through Tier 1 (install, first boot, first observation) with printable ☐ boxes and a direct link to a structured issue template for reporting what you find. Recommended first-hour path for beta testers.
+>
+> When you're ready for full coverage, come back here for Tiers 2-7 (~90-120 min more).
+
 ## Prerequisites
 
 Complete each section below in order before starting the tests. Do not assume anything is pre-installed — verify each item.
