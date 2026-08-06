@@ -126,7 +126,7 @@ Run `mdemg data check --pre-campaign` to verify your instance is configured corr
 
 | Platform | Architecture | Install method |
 |----------|-------------|----------------|
-| macOS 12+ | Apple Silicon (arm64) | `brew install mdemg` |
+| macOS 12+ | Apple Silicon (arm64) | `brew trust reh3376/mdemg && brew install mdemg` |
 | Linux | x86_64, arm64 | [Install script](https://github.com/reh3376/mdemg/blob/main/scripts/install.sh) |
 | Windows | WSL2 | [Install script](https://github.com/reh3376/mdemg/blob/main/scripts/install.sh) (inside WSL2) |
 
@@ -138,11 +138,15 @@ All platforms require Docker Desktop (or Docker Engine on Linux) for the service
 
 ```bash
 # macOS
-brew tap reh3376/mdemg && brew install mdemg
+brew trust reh3376/mdemg    # REQUIRED before first install (Homebrew's untrusted-tap policy)
+brew tap reh3376/mdemg
+brew install mdemg
 
 # Linux / WSL2
 curl -fsSL https://raw.githubusercontent.com/reh3376/mdemg/main/scripts/install.sh | bash
 ```
+
+> Without `brew trust`, `brew install` fails with a cryptic Sorbet stack trace — this is Homebrew's default-blocks-untrusted-taps policy since 2024, not an MDEMG bug.
 
 ```bash
 cd ~/your-project

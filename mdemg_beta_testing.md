@@ -1,6 +1,6 @@
 # MDEMG Beta Testing Guide
 
-**Version under test:** v0.10.0 (CLI)
+**Version under test:** v0.11.0-beta.1 (CLI)
 **Date:** _______________
 **Tester:** _______________
 **Machine specs:** _______________
@@ -58,6 +58,7 @@ wsl --version && cat /etc/os-release
 brew --version || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install MDEMG
+brew trust reh3376/mdemg    # REQUIRED first — Homebrew's untrusted-tap policy
 brew tap reh3376/mdemg
 brew install mdemg
 ```
@@ -238,10 +239,10 @@ These docs cover everything you're testing. Use them for troubleshooting, unders
 | Guide | What it covers |
 |-------|---------------|
 | [README](README.md) | Quick start, commands overview, configuration, troubleshooting |
-| [CLI Reference](docs/cli-reference.md) | All commands, flags, defaults, examples, environment variables |
-| [API Reference](docs/api-reference.md) | Every HTTP endpoint with request/response shapes and curl examples |
-| [CMS & RSIC Guide](docs/cms-rsic-guide.md) | Conversation memory, Jiminy inner-voice guidance, observation types, self-improvement cycles |
-| [Ingestion Guide](docs/ingestion-guide.md) | All 8 ingestion methods — codebase, scraper, Linear, webhooks, file watcher, API |
+| [CLI Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/cli-reference.md) | All commands, flags, defaults, examples, environment variables |
+| [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md) | Every HTTP endpoint with request/response shapes and curl examples |
+| [CMS & RSIC Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/cms-rsic-guide.md) | Conversation memory, Jiminy inner-voice guidance, observation types, self-improvement cycles |
+| [Ingestion Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/ingestion-guide.md) | All 8 ingestion methods — codebase, scraper, Linear, webhooks, file watcher, API |
 
 ---
 
@@ -250,11 +251,14 @@ These docs cover everything you're testing. Use them for troubleshooting, unders
 ### T1.1: Installation
 
 ```bash
+brew trust reh3376/mdemg    # REQUIRED first — Homebrew's untrusted-tap policy
 brew tap reh3376/mdemg
 brew install mdemg
 ```
 
-**Expected:** Homebrew downloads and installs the `mdemg` binary. No errors.
+**Expected:** Homebrew trusts the tap, downloads, and installs the `mdemg` binary. No errors.
+
+> Without `brew trust`, `brew install` fails with a cryptic Sorbet stack trace — this is Homebrew's default-blocks-untrusted-taps policy since 2024, not an MDEMG bug. Report the failure only if `brew trust` DOESN'T fix it.
 
 ```bash
 # Verify binary is on PATH
@@ -287,7 +291,7 @@ mdemg version
 **Expected output:**
 
 ```
-mdemg v0.4.x
+mdemg version 0.11.0-beta.1
   commit:  <short-hash>
   built:   <date>
   go:      go1.24.x
@@ -319,7 +323,11 @@ mdemg init
 11. Runs `docker compose up -d` to start 5 services (Neo4j, TimescaleDB, MDEMG server, neural sidecar, Grafana)
 12. Copies binary to `./bin/mdemg`
 
-> **Important:** Do NOT use `--defaults` here. The interactive wizard lets you enter your OpenAI API key, which is required for embedding and LLM features in subsequent tests.
+> **Which mode to use (v0.11.0-beta.1)**:
+> - **`mdemg init --defaults` — RECOMMENDED for beta testing.** Non-interactive; works with OR without `OPENAI_API_KEY`. Without a key, produces a "disabled mode" config where ingest, retrieval by BM25, dashboard, and observation writes all work; LLM synthesis + Jiminy + vector retrieval need an operator opt-in later.
+> - **`mdemg init` (interactive wizard)** — use only if you want to configure OpenAI/Ollama/Jiminy/plugin choices up front. Prompts guide you through 6-12 decisions.
+>
+> If you want the full feature set from the start, `export OPENAI_API_KEY=sk-...` BEFORE running `mdemg init --defaults`. The init detects the key and enables OpenAI/Jiminy automatically.
 
 ```bash
 # Verify files and services
@@ -421,9 +429,15 @@ mdemg config show
 mdemg config validate
 ```
 
-**Expected:** `config show` displays effective configuration with source annotations (yaml/env/default). `config validate` probes Neo4j connectivity and reports results.
+**Expected:** `config show` displays effective configuration with source annotations (yaml/env/default). `config validate` probes Neo4j + embedding provider connectivity and reports one of THREE outcomes (all exit 0 except FAILED):
 
-- [ ] **PASS** — config show displays settings, validate confirms Neo4j reachable
+1. `Validation: PASSED` — everything reachable ✅ (exit 0)
+2. `Validation: PASSED (services not started — run: docker compose up -d)` — config is fine; you haven't started the stack yet ✅ (exit 0)
+3. `Validation: FAILED (errors found)` — real config problem worth reporting ❌ (exit 1)
+
+If you ran `mdemg init` and see outcome 2, run `docker compose up -d` and re-check.
+
+- [ ] **PASS** — config show displays settings, validate reports one of the 3 outcomes above
 
 ---
 
@@ -486,7 +500,7 @@ open http://localhost:9999/ui/
 
 ## Tier 2: Ingestion (~20 min)
 
-> **Reference:** [Ingestion Guide](docs/ingestion-guide.md) covers all 8 ingestion methods in detail. [API Reference](docs/api-reference.md#codebase-ingestion-api) has full endpoint documentation.
+> **Reference:** [Ingestion Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/ingestion-guide.md) covers all 8 ingestion methods in detail. [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md#codebase-ingestion-api) has full endpoint documentation.
 
 ### T2.1: Codebase Ingestion (CLI)
 
@@ -502,20 +516,28 @@ mdemg ingest --path . --space-id beta-test
 
 ### T2.2: Single Observation (API)
 
+Find your port first (init assigns dynamically):
+
 ```bash
-curl -s -X POST http://localhost:9999/v1/conversation/observe \
+port=$(grep '^MDEMG_PORT' .env | cut -d= -f2)
+curl -s -X POST "http://localhost:${port}/v1/conversation/observe" \
   -H "Content-Type: application/json" \
   -d '{
     "space_id": "beta-test",
     "session_id": "beta-session",
     "content": "This is a test observation from beta testing",
-    "obs_type": "learning"
+    "obs_type": "note"
   }'
 ```
 
-**Expected:** Returns JSON with `node_id` and `status` fields.
+**Expected (v0.11.0-beta.1):** Returns JSON with `obs_id`, `node_id`, and `surprise_score` fields — for example:
+```json
+{"obs_id":"cnovnbxsr...","node_id":"n_a4b7c9e2...","surprise_score":0,"surprise_factors":{...},"summary":"..."}
+```
 
-- [ ] **PASS** — observation created, node_id returned
+**Works in disabled mode** (no embedder required) — this test succeeds even without OpenAI/Ollama configured. If you get `503 conversation service not available (embedder required)`, you're on a pre-v0.11.0-beta.1 build; upgrade with `brew upgrade mdemg`.
+
+- [ ] **PASS** — observation created, `obs_id` + `node_id` returned
 
 ---
 
@@ -681,7 +703,7 @@ mdemg ingest-claude-md --space-id beta-test
 
 ## Tier 3: CMS & RSIC (~20 min)
 
-> **Reference:** [CMS & RSIC Guide](docs/cms-rsic-guide.md) explains the full CMS workflow, RSIC pipeline, Jiminy inner-voice guidance, and includes practical examples. [API Reference](docs/api-reference.md#conversation-memory) has all endpoint shapes.
+> **Reference:** [CMS & RSIC Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/cms-rsic-guide.md) explains the full CMS workflow, RSIC pipeline, Jiminy inner-voice guidance, and includes practical examples. [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md#conversation-memory) has all endpoint shapes.
 
 ### T3.1: Observe (Multiple Types)
 
@@ -962,7 +984,7 @@ mdemg embeddings backfill --space-id beta-test --dry-run
 
 ## Tier 5: Advanced (~15 min)
 
-> **Reference:** [CLI Reference](docs/cli-reference.md) has full flag details for every command. [API Reference](docs/api-reference.md#mcp-server-tools) covers MCP server tools.
+> **Reference:** [CLI Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/cli-reference.md) has full flag details for every command. [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md#mcp-server-tools) covers MCP server tools.
 
 ### T5.1: Secrets (System Keychain)
 
