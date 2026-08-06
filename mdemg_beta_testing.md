@@ -1,6 +1,6 @@
 # MDEMG Beta Testing Guide
 
-**Version under test:** v0.10.0 (CLI)
+**Version under test:** v0.11.0-beta.1 (CLI)
 **Date:** _______________
 **Tester:** _______________
 **Machine specs:** _______________
@@ -13,15 +13,14 @@
 
 | Tier | Section | Tests | Pass | Fail | Skip | Notes |
 |------|---------|-------|------|------|------|-------|
-| 1 | Installation & Core | 12 | | | | |
+| 1 | Installation & Core | 11 | | | | |
 | 2 | Ingestion | 10 | | | | |
 | 3 | CMS & RSIC | 10 | | | | |
 | 4 | Backup & Maintenance | 8 | | | | |
 | 5 | Advanced | 10 | | | | |
 | DC | Docker Compose & New Commands | 8 | | | | |
 | DT | Data Collection & Training | 5 | | | | |
-| M | Menubar App (archived — skip) | 6 | | | | |
-| **Total** | | **69** | | | | |
+| **Total** | | **62** | | | | |
 
 ---
 
@@ -58,6 +57,7 @@ wsl --version && cat /etc/os-release
 brew --version || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install MDEMG
+brew trust reh3376/mdemg    # REQUIRED first — Homebrew's untrusted-tap policy
 brew tap reh3376/mdemg
 brew install mdemg
 ```
@@ -238,10 +238,10 @@ These docs cover everything you're testing. Use them for troubleshooting, unders
 | Guide | What it covers |
 |-------|---------------|
 | [README](README.md) | Quick start, commands overview, configuration, troubleshooting |
-| [CLI Reference](docs/cli-reference.md) | All commands, flags, defaults, examples, environment variables |
-| [API Reference](docs/api-reference.md) | Every HTTP endpoint with request/response shapes and curl examples |
-| [CMS & RSIC Guide](docs/cms-rsic-guide.md) | Conversation memory, Jiminy inner-voice guidance, observation types, self-improvement cycles |
-| [Ingestion Guide](docs/ingestion-guide.md) | All 8 ingestion methods — codebase, scraper, Linear, webhooks, file watcher, API |
+| [CLI Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/cli-reference.md) | All commands, flags, defaults, examples, environment variables |
+| [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md) | Every HTTP endpoint with request/response shapes and curl examples |
+| [CMS & RSIC Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/cms-rsic-guide.md) | Conversation memory, Jiminy inner-voice guidance, observation types, self-improvement cycles |
+| [Ingestion Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/ingestion-guide.md) | All 8 ingestion methods — codebase, scraper, Linear, webhooks, file watcher, API |
 
 ---
 
@@ -250,11 +250,14 @@ These docs cover everything you're testing. Use them for troubleshooting, unders
 ### T1.1: Installation
 
 ```bash
+brew trust reh3376/mdemg    # REQUIRED first — Homebrew's untrusted-tap policy
 brew tap reh3376/mdemg
 brew install mdemg
 ```
 
-**Expected:** Homebrew downloads and installs the `mdemg` binary. No errors.
+**Expected:** Homebrew trusts the tap, downloads, and installs the `mdemg` binary. No errors.
+
+> Without `brew trust`, `brew install` fails with a cryptic Sorbet stack trace — this is Homebrew's default-blocks-untrusted-taps policy since 2024, not an MDEMG bug. Report the failure only if `brew trust` DOESN'T fix it.
 
 ```bash
 # Verify binary is on PATH
@@ -287,7 +290,7 @@ mdemg version
 **Expected output:**
 
 ```
-mdemg v0.4.x
+mdemg version 0.11.0-beta.1
   commit:  <short-hash>
   built:   <date>
   go:      go1.24.x
@@ -319,7 +322,11 @@ mdemg init
 11. Runs `docker compose up -d` to start 5 services (Neo4j, TimescaleDB, MDEMG server, neural sidecar, Grafana)
 12. Copies binary to `./bin/mdemg`
 
-> **Important:** Do NOT use `--defaults` here. The interactive wizard lets you enter your OpenAI API key, which is required for embedding and LLM features in subsequent tests.
+> **Which mode to use (v0.11.0-beta.1)**:
+> - **`mdemg init --defaults` — RECOMMENDED for beta testing.** Non-interactive; works with OR without `OPENAI_API_KEY`. Without a key, produces a "disabled mode" config where ingest, retrieval by BM25, dashboard, and observation writes all work; LLM synthesis + Jiminy + vector retrieval need an operator opt-in later.
+> - **`mdemg init` (interactive wizard)** — use only if you want to configure OpenAI/Ollama/Jiminy/plugin choices up front. Prompts guide you through 6-12 decisions.
+>
+> If you want the full feature set from the start, `export OPENAI_API_KEY=sk-...` BEFORE running `mdemg init --defaults`. The init detects the key and enables OpenAI/Jiminy automatically.
 
 ```bash
 # Verify files and services
@@ -421,9 +428,15 @@ mdemg config show
 mdemg config validate
 ```
 
-**Expected:** `config show` displays effective configuration with source annotations (yaml/env/default). `config validate` probes Neo4j connectivity and reports results.
+**Expected:** `config show` displays effective configuration with source annotations (yaml/env/default). `config validate` probes Neo4j + embedding provider connectivity and reports one of THREE outcomes (all exit 0 except FAILED):
 
-- [ ] **PASS** — config show displays settings, validate confirms Neo4j reachable
+1. `Validation: PASSED` — everything reachable ✅ (exit 0)
+2. `Validation: PASSED (services not started — run: docker compose up -d)` — config is fine; you haven't started the stack yet ✅ (exit 0)
+3. `Validation: FAILED (errors found)` — real config problem worth reporting ❌ (exit 1)
+
+If you ran `mdemg init` and see outcome 2, run `docker compose up -d` and re-check.
+
+- [ ] **PASS** — config show displays settings, validate reports one of the 3 outcomes above
 
 ---
 
@@ -467,26 +480,9 @@ open http://localhost:9999/ui/
 
 ---
 
-### T1.12: Upgrade from v0.5.x to v0.6.0
-
-> **Note:** This test validates the upgrade path. If testing a fresh install, skip this test.
-
-1. Start with v0.5.x running: `mdemg version` shows v0.5.x
-2. Run graph repair: `mdemg graph repair --space-id beta-test --dry-run=false`
-3. Upgrade: `brew upgrade mdemg` or `mdemg upgrade`
-4. Restart: `docker compose up -d`
-5. Verify: `mdemg data check --pre-campaign --json` — 0 failures
-
-**Expected:** Graph repair completes with V0023 READY status. After upgrade and restart, V0023 migration applies successfully. Pre-campaign check shows 0 failures.
-
-- [ ] **PASS** — upgrade from v0.5.x to v0.6.0 succeeds
-- [ ] **SKIP** — fresh install (no prior version)
-
----
-
 ## Tier 2: Ingestion (~20 min)
 
-> **Reference:** [Ingestion Guide](docs/ingestion-guide.md) covers all 8 ingestion methods in detail. [API Reference](docs/api-reference.md#codebase-ingestion-api) has full endpoint documentation.
+> **Reference:** [Ingestion Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/ingestion-guide.md) covers all 8 ingestion methods in detail. [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md#codebase-ingestion-api) has full endpoint documentation.
 
 ### T2.1: Codebase Ingestion (CLI)
 
@@ -502,20 +498,28 @@ mdemg ingest --path . --space-id beta-test
 
 ### T2.2: Single Observation (API)
 
+Find your port first (init assigns dynamically):
+
 ```bash
-curl -s -X POST http://localhost:9999/v1/conversation/observe \
+port=$(grep '^MDEMG_PORT' .env | cut -d= -f2)
+curl -s -X POST "http://localhost:${port}/v1/conversation/observe" \
   -H "Content-Type: application/json" \
   -d '{
     "space_id": "beta-test",
     "session_id": "beta-session",
     "content": "This is a test observation from beta testing",
-    "obs_type": "learning"
+    "obs_type": "note"
   }'
 ```
 
-**Expected:** Returns JSON with `node_id` and `status` fields.
+**Expected (v0.11.0-beta.1):** Returns JSON with `obs_id`, `node_id`, and `surprise_score` fields — for example:
+```json
+{"obs_id":"cnovnbxsr...","node_id":"n_a4b7c9e2...","surprise_score":0,"surprise_factors":{...},"summary":"..."}
+```
 
-- [ ] **PASS** — observation created, node_id returned
+**Works in disabled mode** (no embedder required) — this test succeeds even without OpenAI/Ollama configured. If you get `503 conversation service not available (embedder required)`, you're on a pre-v0.11.0-beta.1 build; upgrade with `brew upgrade mdemg`.
+
+- [ ] **PASS** — observation created, `obs_id` + `node_id` returned
 
 ---
 
@@ -681,7 +685,7 @@ mdemg ingest-claude-md --space-id beta-test
 
 ## Tier 3: CMS & RSIC (~20 min)
 
-> **Reference:** [CMS & RSIC Guide](docs/cms-rsic-guide.md) explains the full CMS workflow, RSIC pipeline, Jiminy inner-voice guidance, and includes practical examples. [API Reference](docs/api-reference.md#conversation-memory) has all endpoint shapes.
+> **Reference:** [CMS & RSIC Guide](https://github.com/reh3376/mdemg/blob/main/docs/user/cms-rsic-guide.md) explains the full CMS workflow, RSIC pipeline, Jiminy inner-voice guidance, and includes practical examples. [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md#conversation-memory) has all endpoint shapes.
 
 ### T3.1: Observe (Multiple Types)
 
@@ -962,7 +966,7 @@ mdemg embeddings backfill --space-id beta-test --dry-run
 
 ## Tier 5: Advanced (~15 min)
 
-> **Reference:** [CLI Reference](docs/cli-reference.md) has full flag details for every command. [API Reference](docs/api-reference.md#mcp-server-tools) covers MCP server tools.
+> **Reference:** [CLI Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/cli-reference.md) has full flag details for every command. [API Reference](https://github.com/reh3376/mdemg/blob/main/docs/user/api-reference.md#mcp-server-tools) covers MCP server tools.
 
 ### T5.1: Secrets (System Keychain)
 
@@ -1332,140 +1336,6 @@ mdemg data export-auto --dry-run --space-id $(grep SPACE_ID .env | cut -d= -f2 |
 **Expected:** Shows what would be exported without creating files. Validates the export-auto pipeline end-to-end.
 
 - [ ] **PASS** — dry run completes, shows export plan
-
----
-
-## Tier M: Menubar App (~15 min) — ARCHIVED
-
-> **The mdemg-menubar repository has been archived.** The Browser Dashboard at `http://localhost:9999/ui/` replaces the menubar app for status monitoring and configuration. This tier is preserved for historical reference but **should be skipped** during testing. See Tier DC for the browser dashboard tests instead.
-
-> **Requires:** The MDEMG server must be running (`mdemg status` shows healthy). Run these tests **before** T5.10 (teardown), which removes the instance the menubar monitors.
-
-### M.1: Install Menubar App
-
-```bash
-# Download the latest .app.zip
-curl -fsSL -o /tmp/MdemgMenuBar.app.zip \
-  "https://github.com/reh3376/mdemg-menubar/releases/latest/download/MdemgMenuBar.app.zip"
-
-# Extract
-cd /tmp && unzip -o MdemgMenuBar.app.zip
-
-# Move to Applications
-mv /tmp/MdemgMenuBar.app /Applications/
-
-# Remove quarantine attribute (required for unsigned apps)
-xattr -rd com.apple.quarantine /Applications/MdemgMenuBar.app
-
-# Launch
-open /Applications/MdemgMenuBar.app
-```
-
-> **macOS Security Warning:** On first launch, macOS may block the app with "MdemgMenuBar cannot be opened because it is from an unidentified developer." If this happens:
-> 1. Open **System Settings** → **Privacy & Security**
-> 2. Scroll down to the security section — you should see "MdemgMenuBar was blocked"
-> 3. Click **"Open Anyway"** → confirm the dialog
-> 4. The app should now launch and appear in the menu bar
-
-**Expected:** A small icon appears in the macOS menu bar (top-right area, near the clock).
-
-- [ ] **PASS** — menubar app installed and icon visible in menu bar
-- [ ] **Method used:** GitHub release download
-
----
-
-### M.2: Menubar Connection
-
-Click the menubar icon to open the popover window.
-
-**Expected:** The popover opens showing:
-- Instance name in the header (e.g., "mdemg-test" or "MDEMG")
-- A **"Running"** status badge with a green dot (top-right of header)
-- A gear icon for Preferences (top-right)
-- 7 tabs: Status, Memory, Learning, Neo4j, Config, Logs, RSIC
-
-If the status badge shows **"Stopped"** (red dot), verify the server is running:
-
-```bash
-curl -s http://localhost:9999/healthz
-```
-
-- [ ] **PASS** — popover opens, shows "Running" badge, 7 tabs visible
-
----
-
-### M.3: Browse All Tabs
-
-Click through each tab and verify it loads data (not just a blank view):
-
-| Tab | What to look for |
-|-----|-----------------|
-| **Status** | Server status (Running/Stopped), subsystem health indicators (embeddings, Neo4j, LLM), configured models, active services |
-| **Memory** | Total observation count, layer breakdown (L0-L5), memory health score, Knowledge Sharing section (Export/Import buttons with profile and space pickers) |
-| **Learning** | Hebbian edge count, learning phase (cold/learning/warm/saturated), Freeze/Unfreeze toggle, Prune button |
-| **Neo4j** | Database version, total node/relationship counts, connection pool stats, container status (Running/Stopped), lifecycle buttons (Start/Stop), resource usage |
-| **Config** | Server endpoint, space ID, PID file path, key-value config pairs, Backup section (trigger + list), Migrate button, **Instance Removal** section ("Remove Instance..." button) |
-| **Logs** | Recent server log lines, search/filter field, color-coded severity levels, refresh button |
-| **RSIC** | Engine status (idle/running), watchdog health, recent cycle history, calibration confidence scores |
-
-> **Tip:** Some tabs (Memory, Learning, RSIC) populate with more data after you've run ingestion and observation tests in Tiers 2-3. If a tab shows mostly zeros or "—", that's expected on a fresh install.
-
-- [ ] **PASS** — all 7 tabs load and display data (or reasonable empty state)
-
----
-
-### M.4: Test Server Controls
-
-From the **Status** tab, test the server lifecycle controls:
-
-1. **Stop the server** using the Status tab's stop button
-2. Verify the status badge changes to **"Stopped"** with a red dot
-3. **Start the server** using the Status tab's start button
-4. Wait ~10 seconds for the health poll to update
-5. Verify the status badge changes back to **"Running"** with a green dot
-
-> **Note:** The menubar polls the server on a configurable interval (default: 10s for health, 30s for stats). After clicking Start, the badge may take up to 10 seconds to update. If the badge doesn't update, close and reopen the popover.
-
-**Fallback:** If the start button doesn't work, start the server from the terminal:
-
-```bash
-mdemg start --auto-migrate
-```
-
-- [ ] **PASS** — stop/start cycle works, status badge updates correctly
-
----
-
-### M.5: Instance Manager
-
-1. Click the **gear icon** (top-right of header) → Preferences popover opens
-2. In the **Instances** section, click **"Manage Instances..."**
-3. Verify the **Instance Manager** sheet opens showing registered instances with status dots, directory paths, and server URLs
-4. Click the **"+"** button → **Add Instance** sheet opens
-5. Enter a test instance: Name = `test-instance`, Directory = `/tmp`, Space ID = `mdemg-dev`
-6. Click **Add** → verify the new instance appears in the list
-7. **Right-click** the test instance → verify context menu shows "Remove from List" and "Remove Instance..."
-8. Click **"Remove from List"** → verify the instance is removed (this only removes it from the menubar, it does NOT run teardown)
-
-- [ ] **PASS** — Instance Manager opens, add/select/remove-from-list works, context menu appears
-
----
-
-### M.6: Auto-Update Check
-
-1. Click the **gear icon** → Preferences popover opens
-2. In the **General** section, note the current version number
-3. Click **"Check for Updates"**
-4. If an update is available: a blue banner appears at the top of Preferences showing the version transition (e.g., "v1.7.0 → v1.8.0") with an **"Update"** button, and a blue dot appears on the gear icon in the main header
-
-> **Important:** Do **NOT** click the "Update" button during testing — updating replaces the app version being tested, which would invalidate remaining test results. Just verify the update check mechanism works.
-
-**Expected (no update):** The "Check for Updates" button briefly shows a spinner, then returns to normal (no banner).
-
-**Expected (update available):** Blue update banner with version transition and "Update" button.
-
-- [ ] **PASS** — update check completes without error
-- [ ] **Update available?** Yes / No (note version if yes: _______________)
 
 ---
 
