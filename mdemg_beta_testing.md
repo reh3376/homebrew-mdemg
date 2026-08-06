@@ -24,6 +24,11 @@
 
 ---
 
+> **New: printable install checklist**
+> If you're short on time, start with the [Install Checklist](https://github.com/reh3376/mdemg/blob/main/docs/beta/install-checklist.md) — a 30-min guided path through Tier 1 (install, first boot, first observation) with printable ☐ boxes and a direct link to a structured issue template for reporting what you find. Recommended first-hour path for beta testers.
+>
+> When you're ready for full coverage, come back here for Tiers 2-7 (~90-120 min more).
+
 ## Prerequisites
 
 Complete each section below in order before starting the tests. Do not assume anything is pre-installed — verify each item.
@@ -247,6 +252,18 @@ These docs cover everything you're testing. Use them for troubleshooting, unders
 
 ## Tier 1: Installation & Core (~30 min)
 
+> **Convention for HTTP tests below**: after `mdemg init` completes (T1.3), export a shared base URL once and reuse it in every `curl` example. Since `mdemg init` assigns a dynamic `MDEMG_PORT`, using `localhost:9999` hardcoded will fail on a beta tester's install if another process holds that port.
+>
+> ```bash
+> # Run once after T1.3, from the project directory that has .env:
+> cd ~/mdemg-test    # or wherever you ran `mdemg init`
+> export MDEMG_PORT=$(grep '^MDEMG_PORT' .env | cut -d= -f2)
+> export MDEMG_BASE_URL="http://localhost:${MDEMG_PORT}"
+> echo "Using $MDEMG_BASE_URL"
+> ```
+>
+> Then every test below can `curl "$MDEMG_BASE_URL/v1/..."`. Examples in this guide still show `localhost:9999` as the default assignment (what init picks when nothing conflicts), but if your `MDEMG_PORT` differs, use `$MDEMG_BASE_URL`.
+
 ### T1.1: Installation
 
 ```bash
@@ -257,7 +274,7 @@ brew install mdemg
 
 **Expected:** Homebrew trusts the tap, downloads, and installs the `mdemg` binary. No errors.
 
-> Without `brew trust`, `brew install` fails with a cryptic Sorbet stack trace — this is Homebrew's default-blocks-untrusted-taps policy since 2024, not an MDEMG bug. Report the failure only if `brew trust` DOESN'T fix it.
+> Without `brew trust`, `brew install` fails with a cryptic Sorbet stack trace — this is Homebrew's default-blocks-untrusted-taps policy in current Homebrew versions, not an MDEMG bug. Report the failure only if `brew trust` DOESN'T fix it.
 
 ```bash
 # Verify binary is on PATH
@@ -498,11 +515,10 @@ mdemg ingest --path . --space-id beta-test
 
 ### T2.2: Single Observation (API)
 
-Find your port first (init assigns dynamically):
+Uses `$MDEMG_BASE_URL` — see the Tier 1 preamble for the one-time `export` if you haven't set it yet.
 
 ```bash
-port=$(grep '^MDEMG_PORT' .env | cut -d= -f2)
-curl -s -X POST "http://localhost:${port}/v1/conversation/observe" \
+curl -s -X POST "$MDEMG_BASE_URL/v1/conversation/observe" \
   -H "Content-Type: application/json" \
   -d '{
     "space_id": "beta-test",
@@ -514,7 +530,7 @@ curl -s -X POST "http://localhost:${port}/v1/conversation/observe" \
 
 **Expected (v0.11.0-beta.1):** Returns JSON with `obs_id`, `node_id`, and `surprise_score` fields — for example:
 ```json
-{"obs_id":"cnovnbxsr...","node_id":"n_a4b7c9e2...","surprise_score":0,"surprise_factors":{...},"summary":"..."}
+{"obs_id":"cnovnbxsr...","node_id":"n_a4b7c9e2...","surprise_score":0,"surprise_factors":{},"summary":"..."}
 ```
 
 **Works in disabled mode** (no embedder required) — this test succeeds even without OpenAI/Ollama configured. If you get `503 conversation service not available (embedder required)`, you're on a pre-v0.11.0-beta.1 build; upgrade with `brew upgrade mdemg`.
