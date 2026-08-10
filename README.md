@@ -1,5 +1,7 @@
 # MDEMG — Multi-Dimensional Emergent Memory Graph
 
+> **👋 Beta tester?** Start here → **[README_BETA.md](README_BETA.md)** — single-page onboarding index with install, testing plan, UIs, backups, troubleshooting, and reporting.
+
 Persistent, self-organizing memory for AI agents. Observations accumulate, cluster into themes, and promote to emergent concepts through Hebbian learning — giving LLMs a long-term knowledge graph that grows, self-improves, and develops understanding over time.
 
 MDEMG is not a vector database or a RAG pipeline. It is a **cognitive substrate** — a 5-layer neural memory hierarchy that mirrors how biological memory consolidates short-term experience into long-term knowledge.
