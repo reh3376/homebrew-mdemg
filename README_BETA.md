@@ -127,7 +127,9 @@ mdemg beta-share --space-id <your-space> --since-days 7             # opt-in pro
 - **30-day maintainer-side retention** — deletion supported by email with the Submission ID as subject
 - Each bundle contains a `README-BETA.md` and `submission_receipt.json` explaining what's inside
 
-Feature doc: [`docs/features/hitl-auto-curation.md`](https://github.com/reh3376/mdemg/blob/main/docs/features/hitl-auto-curation.md#extending-to-the-guidance-dataset)
+**Full tester-facing guide** — how it works end-to-end, what gets captured, where the bundle saves, how it reaches the maintainer, retention + deletion flow, troubleshooting: **[`docs/features/beta-share.md`](https://github.com/reh3376/mdemg/blob/main/docs/features/beta-share.md)**. Point questions at this file first.
+
+Related: [`docs/features/hitl-auto-curation.md`](https://github.com/reh3376/mdemg/blob/main/docs/features/hitl-auto-curation.md#extending-to-the-guidance-dataset) covers how the maintainer curates the received data into the retrain corpus.
 
 ---
 
