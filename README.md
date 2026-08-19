@@ -211,6 +211,62 @@ Full Configurability Contract (11 env vars + flags) documented at [`docs/feature
 
 If you don't want a local LLM, skip this step — MDEMG falls back to OpenAI (default `gpt-5.4-mini`).
 
+### Model versioning + upgrade path
+
+MDEMG's local LLM is a **versioned production model**. Each version has its own name on Ollama Library; `mdemg model pull` fetches by `--namespace/--name` (defaults `reh3376/mdemg-llm-v1`).
+
+**Current default: `mdemg-llm-v1`**
+- Base: Qwen3-14B-4bit (`mlx-community/Qwen3-14B-4bit`)
+- Fine-tune: Phase 5 SFT (dense), served as GGUF Q5_K_M via `llama-server` on port 8102
+- Benchmark aggregate: **0.9188** on the 16-task augmented eval (current honest number; see `docs/development/ape-reflect-eval-refresh-001/`)
+- Ships today; this is what `brew install mdemg && mdemg model pull` gets you
+
+**Coming: `mdemg-llm-v2`** (not yet shipped — tracking task [`#134`](https://github.com/reh3376/mdemg/issues) HOMEBREW-INSTALLER-QWEN-UPDATE-001)
+- Base: new 27B Qwen (specific variant per task #91 MODEL-SWAP-QWEN27B-EVAL follow-up)
+- Fine-tune: retrained on Phase E2's stripped corpus (~7,503 rows; fact-recall now handled by MDEMG's memory substrate via retrieval + content projection per PHASE-E1/E2)
+- Distribution channel: same as v1 — Ollama Library under `reh3376/mdemg-llm-v2`
+- v1 remains fetchable indefinitely for rollback
+
+**When v2 ships, upgrade like this:**
+
+```bash
+# 1. Pull the new model (RAM-auto picks quant, same as v1)
+mdemg model pull --name mdemg-llm-v2
+
+# 2. Update your .env — replace the MDEMG_MODEL_PATH line
+#    with the path printed by step (1), e.g.:
+#    MDEMG_MODEL_PATH=/Users/you/.mdemg/models/mdemg-llm-v2.Q5_K_M.gguf
+
+# 3. Restart llama-server so it loads the new weights
+launchctl kickstart -k gui/$UID/com.mdemg.llama-server
+
+# 4. Verify the swap
+curl -s http://127.0.0.1:8102/v1/models | jq .data[0].id
+mdemg model list      # confirm v2 symlink + size
+```
+
+> **Note (2026-08-19)**: today, model activation is env-var + `launchctl kickstart` (steps 2-3 above). A `mdemg model use <name>` shorthand may ship as part of task #134 to collapse steps 2-3 into one command; if it lands, the docs will reflect it. The env-var path continues to work regardless.
+
+**Rollback to v1:**
+
+```bash
+# Point .env MDEMG_MODEL_PATH back at the v1 GGUF (still on disk)
+mdemg model list      # shows both v1 + v2 pulled, with local paths
+# Edit .env → MDEMG_MODEL_PATH=/path/from/v1/row
+launchctl kickstart -k gui/$UID/com.mdemg.llama-server
+```
+
+v1 is not deleted by pulling v2 (each version is a distinct Ollama tag + a distinct local symlink under `~/.mdemg/models/`). To free the v1 disk space explicitly: `mdemg model remove --name mdemg-llm-v1 --yes`. Rollback requires re-pulling if you removed.
+
+**Which version is running right now?**
+
+```bash
+curl -s http://127.0.0.1:8102/v1/models | jq .data[0].id       # what llama-server loaded
+mdemg model list                                                # what's pulled locally
+```
+
+The GA release notes ([`docs/releases/`](https://github.com/reh3376/mdemg/tree/main/docs/releases)) will name the current default model + version for every ship. When v2 lands, its release note will document the aggregate-benchmark result vs v1's 0.9188 baseline and any operator-visible behavior change.
+
 ---
 
 For detailed installation, prerequisites, and verification steps, see the [Beta Testing Guide](mdemg_beta_testing.md).

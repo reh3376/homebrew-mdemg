@@ -59,6 +59,7 @@ Full documentation lives in the main [`mdemg` repo](https://github.com/reh3376/m
 ### Upgrades + versions
 - [`docs/user/upgrade-guide.md`](https://github.com/reh3376/mdemg/blob/main/docs/user/upgrade-guide.md) — `mdemg upgrade` + Homebrew paths
 - [Release notes for each beta](https://github.com/reh3376/mdemg/tree/main/docs/releases) — what shipped in beta.1, beta.2, beta.3, …
+- **[LLM model versioning + upgrade path](README.md#model-versioning--upgrade-path)** — what `mdemg-llm-v1` means as the current default, what's coming in `mdemg-llm-v2` (new 27B Qwen base per task #91 + retrained on the substrate-native stripped corpus per Phase E1/E2), and the exact command sequence to switch versions. v1 stays fetchable indefinitely — rollback is one env-var edit + `launchctl kickstart` away.
 
 ---
 
