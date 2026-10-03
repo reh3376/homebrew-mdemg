@@ -55,7 +55,7 @@ An internal guidance system that surfaces constraints, suggestions, and warnings
 
 **Ingestion**
 - 8 ingestion methods: codebase scan, file watcher, git hooks, Claude Code memory files, Linear tickets, web scraper, webhooks, direct API
-- Tree-sitter symbol extraction for 15+ languages
+- Tree-sitter symbol extraction for 28 languages (UPTS-validated)
 - Incremental ingest with content hashing (only changed files re-processed)
 
 **Consolidation**
